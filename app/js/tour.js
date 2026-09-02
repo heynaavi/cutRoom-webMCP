@@ -86,7 +86,7 @@ const Tour = (() => {
       apply() { Store.setTab("cands"); Store.logTool("getCutManifest", "json"); } },
   ];
 
-  let dock = null, spot = null, at = -1, playing = false, timer = 0, t0 = 0, left = 0, pinned = false, raf = 0;
+  let dock = null, spot = null, at = -1, playing = false, timer = 0, t0 = 0, left = 0, pinned = false, raf = 0, ro = null;
 
   /* ── seeking ────────────────────────────────────────────────────────────── */
   // Rebuild from scratch so scrubbing backwards works. Cheap: the whole thing
@@ -145,7 +145,15 @@ const Tour = (() => {
   // Sit beside whatever the step is about, never on top of it. Once dragged,
   // stay where you're put.
   function place() {
-    if (!dock || pinned) return;
+    if (!dock) return;
+    if (pinned) {   // dragged: leave x/y alone, but keep it fully on screen
+      const r = dock.getBoundingClientRect();
+      const y = Math.max(8, Math.min(window.innerHeight - r.height - 8, r.top));
+      const x = Math.max(8, Math.min(window.innerWidth - r.width - 8, r.left));
+      dock.style.top = `${Math.round(y)}px`;
+      dock.style.left = `${Math.round(x)}px`;
+      return;
+    }
     const target = document.querySelector(STEPS[at]?.focus || "body");
     const d = dock.getBoundingClientRect();
     const pad = 16;
@@ -159,13 +167,14 @@ const Tour = (() => {
     let y = t.top + t.height / 2 - d.height / 2;
     y = Math.max(pad, Math.min(window.innerHeight - d.height - pad, y));
 
-    if (window.gsap) gsap.to(dock, { left: Math.round(x), top: Math.round(y), duration: .55, ease: "power3.out", overwrite: "auto" });
-    else { dock.style.left = `${Math.round(x)}px`; dock.style.top = `${Math.round(y)}px`; }
+    dock.style.left = `${Math.round(x)}px`;
+    dock.style.top = `${Math.round(y)}px`;
 
     if (spot) {
-      const to = { left: t.left - 4, top: t.top - 4, width: t.width + 8, height: t.height + 8 };
-      if (window.gsap) gsap.to(spot, { ...to, duration: .6, ease: "power3.inOut", overwrite: "auto" });
-      else Object.assign(spot.style, Object.fromEntries(Object.entries(to).map(([k, v]) => [k, `${v}px`])));
+      Object.assign(spot.style, {
+        left: `${t.left - 4}px`, top: `${t.top - 4}px`,
+        width: `${t.width + 8}px`, height: `${t.height + 8}px`,
+      });
     }
   }
 
@@ -189,13 +198,17 @@ const Tour = (() => {
 
     // the calls it has made so far, with what came back
     const list = dock.querySelector("#tCalls");
-    list.innerHTML = STEPS.slice(0, at + 1).map((s, i) => `
-      <li class="${i === at && !done ? "now" : "done"}">
+    list.innerHTML = STEPS.slice(0, at + 1).map((s, i) => ({ s, i }))
+      .reverse()                                   // newest first
+      .map(({ s, i }, pos) => `
+      <li class="${i === at && !done ? "now" : "past"}${pos === 0 ? " newest" : ""}">
         <span class="c-tick">${i === at && !done ? "" : "✓"}</span>
         <code>${s.tool}<em>${s.args || ""}</em></code>
         <span class="c-got">${i === at && !done ? "" : (s.got || "")}</span>
       </li>`).join("");
-    list.scrollTop = list.scrollHeight;
+    // newest is at the top, so there is nothing to scroll to
+    const turn = dock.querySelector(".td-turn");
+    if (turn) turn.scrollTop = 0;
 
     dock.querySelector("#tWork").textContent = done
       ? `Done · ${STEPS.length} tool calls`
@@ -249,8 +262,8 @@ const Tour = (() => {
           <span class="td-spin" id="tSpin"></span>
           <span id="tWork">Working</span>
         </div>
-        <ol class="td-calls" id="tCalls"></ol>
         <div class="td-said" id="tSaid" hidden></div>
+        <ol class="td-calls" id="tCalls"></ol>
       </div>
 
       <div class="td-timeline" id="tTimeline">
@@ -300,9 +313,19 @@ const Tour = (() => {
     };
 
     addEventListener("resize", place);
+
+    if (window.ResizeObserver) {
+      let pending = 0;
+      ro = new ResizeObserver(() => {
+        cancelAnimationFrame(pending);
+        pending = requestAnimationFrame(place);   // one placement per frame
+      });
+      ro.observe(dock);
+    }
   }
 
   function close() {
+    ro?.disconnect(); ro = null;
     clearTimeout(timer); cancelAnimationFrame(raf);
     playing = false;
     Player.stop();

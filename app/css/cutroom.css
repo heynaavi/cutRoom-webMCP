@@ -527,7 +527,8 @@ body.dropping::after {
 .tour-spot {
   position:fixed; z-index:93; pointer-events:none; border-radius:var(--r-lg);
   box-shadow:0 0 0 2px var(--accent), 0 0 0 9999px rgba(33,31,26,.30);
-  transition:opacity .2s;
+  transition:left .5s cubic-bezier(.3,.9,.3,1), top .5s cubic-bezier(.3,.9,.3,1),
+             width .5s cubic-bezier(.3,.9,.3,1), height .5s cubic-bezier(.3,.9,.3,1), opacity .2s;
 }
 .tour-spot.dim { opacity:.25; }
 
@@ -535,8 +536,12 @@ body.dropping::after {
   position:fixed; z-index:96; width:340px; background:var(--surface);
   border:1px solid var(--hairline); border-radius:var(--r-lg); box-shadow:var(--shadow-3);
   opacity:0; overflow:hidden;
+  /* GSAP animates transform/opacity; CSS moves it. Keeping these on separate
+     properties stops the two from overwriting each other. */
+  transition:left .45s cubic-bezier(.3,.9,.3,1), top .45s cubic-bezier(.3,.9,.3,1);
 }
 .tour-dock.in { opacity:1; }
+.tour-dock.dragging { transition:none; }
 .tour-dock.dragging { transition:opacity .2s, transform .2s; cursor:grabbing; box-shadow:var(--shadow-3), 0 0 0 2px var(--accent); }
 
 .td-grip {
@@ -613,7 +618,7 @@ body.text-only .cut-play { opacity:.4; cursor:not-allowed; }
 /* ══ the demo dock, as an agent session ═══════════════════════════════════ */
 .tour-dock { width:400px; }
 
-.td-turn { padding:14px 16px 12px; }
+.td-turn { padding:14px 16px 12px; max-height:min(52vh, 420px); overflow-y:auto; scrollbar-width:thin; }
 .td-who {
   display:block; font-family:var(--f-mono); font-size:9px; letter-spacing:.18em;
   text-transform:uppercase; color:var(--faint); margin-bottom:4px;
@@ -635,7 +640,7 @@ body.text-only .cut-play { opacity:.4; cursor:not-allowed; }
 .td-spin.still { border-color:var(--positive); animation:none; }
 @keyframes tdspin { to { transform:rotate(360deg); } }
 
-.td-calls { list-style:none; margin:0; padding:0; max-height:168px; overflow-y:auto; scrollbar-width:thin; }
+.td-calls { list-style:none; margin:0; padding:0; }
 .td-calls li {
   display:grid; grid-template-columns:14px 1fr; gap:4px 7px; align-items:baseline;
   padding:4px 0; border-bottom:1px solid var(--hairline-2);
@@ -647,10 +652,20 @@ body.text-only .cut-play { opacity:.4; cursor:not-allowed; }
 }
 .td-calls code em { font-style:normal; color:var(--faint); margin-left:5px; }
 .td-calls .c-got { grid-column:2; font-size:11.5px; line-height:1.45; color:var(--muted); }
+/* the call that just happened leads; earlier ones recede into a log */
+.td-calls li.newest {
+  background:var(--bg); border-radius:var(--r-sm); border-bottom-color:transparent;
+  padding:7px 9px; margin:0 -9px 3px;
+}
+.td-calls li.newest code { font-size:12px; }
+.td-calls li.newest .c-got { color:var(--text-2); }
+.td-calls li.past:not(.newest) { opacity:.55; }
+.td-calls li.past:not(.newest) code { color:var(--muted); }
 .td-calls li.now code { color:var(--text); }
 
 .td-said {
-  margin-top:11px; padding-top:11px; border-top:1px solid var(--hairline);
+  margin-bottom:12px; padding:11px 12px; background:var(--accent-soft);
+  border-radius:var(--r); border-left:3px solid var(--accent);
 }
 .td-said p { margin:0; font-size:13.5px; line-height:1.55; color:var(--text-2); }
 
