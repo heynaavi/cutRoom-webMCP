@@ -21,8 +21,8 @@ Built for the [WebMCP Challenge](https://webmcp.devpost.com/).
 
 An agent driving this page through the DOM would have to scroll a 500-line
 transcript and guess which `div` is the right line. With tools it calls
-`searchTranscript("the call came")` and gets back `{startSec: 1126.2, endSec:
-1132.6}` — a precise, un-clickable operation on the *time domain* of a
+`searchTranscript("the call came")` and gets back `{startSec: 1122.08, endSec:
+1129.78}` — a precise, un-clickable operation on the *time domain* of a
 recording.
 
 More importantly, the reads are **bidirectional**. `getReelState()` doesn't
@@ -60,7 +60,11 @@ that responds to *that* is reading taste, not executing a task.
 | `trimClip` | Nudge in/out by fractions of a second, snapped to word boundaries |
 | `getCandidates` | Every angle proposed, and how the human reacted |
 | `renderVideo` | **Renders a real 1080×1920 video** with burned-in captions, in-browser |
-| `exportCut` | EDL / JSON / script, so the cut can leave the browser |
+| `exportCut` | EDL / JSON / script / **SRT timed against the finished cut**, so it can leave the browser |
+| `getCutManifest` | Every span to a hundredth of a second, plus the ffmpeg command |
+| `cleanUpCut` | One pass: stammers, false starts, hesitations, dead air, across every clip |
+| `redactPhrase` / `redactRange` | Material that must not ship, on the record and in the export |
+| `getWorkflowState` | Where this session has got to, and what's sensible next |
 | `tidyClip` | Drop leading/trailing filler words from a clip |
 | `tightenClip` | Close up dead air *inside* a clip, read from the audio |
 | `omitPhrase` | Delete words from the middle; the audio closes up behind |
@@ -92,12 +96,13 @@ show you that. Cutroom keeps an RMS envelope of the real audio, so
 above their own baseline:
 
 ```
-lift 2.61 @29:38  "I mean, isn't that amazing that we did that?"
-lift 2.24 @31:47  "Are you going to have a giggle fit?"
+lift 2.85 @29:38  "I mean, isn't that amazing that we did that?"
+lift 2.62 @30:41  "Yeah, it's a Marvel. And you also have a perspective…"
+lift 2.41 @31:42  "…Are you going to like have a giggle fit?"
 ```
 
 Searching the transcript for "amazing" would never rank those. The signal is in
-the delivery. The same envelope drives `snapToBreath`, because a splice landing
+the delivery. The whole pass is 1.7ms over 21,000 envelope samples. The same envelope drives `snapToBreath`, because a splice landing
 on top of a word sounds broken however good the line is.
 
 ## Three ways material gets in
@@ -119,6 +124,14 @@ The demo drives the **real tools** — the same functions an agent invokes, in t
 order an agent would sensibly use them — and it's labelled as scripted. A faked
 agent would be both dishonest and less impressive than the truth, which is that
 it genuinely works. It leaves a real cut on the reel to carry on with.
+
+Every result it reports is measured from the state it just produced, not written
+down in advance, so it cannot quote a number it isn't producing.
+
+Add **`?present`** to the URL (or press `P` while it's running) for presenter
+mode: each step then holds until you press `→`, the line to narrate is shown at
+reading size, and a clock counts up so you can see the three-minute video limit
+coming. Fixed timers are right for watching and impossible to talk over.
 
 ## When the agent can't call the tools
 
@@ -175,9 +188,12 @@ It drives the page over CDP — searches the transcript, proposes a cut, checks
 the pending clips actually appear in the DOM, and confirms `getReelState`
 reports back what the human did.
 
-**Without any agent it still works** — *Suggest three cuts* in the Cuts tab
-builds keyword-based starters. Playing those against an agent's cut, back to
-back, is the fastest way to hear what the agent is actually contributing.
+**Without any agent it still works** — *Suggest cuts from the text* in the Cuts
+tab builds candidates from the words alone: sentence boundaries, no host
+questions, no lines that open on a pronoun. It is deliberately labelled for what
+it reads, and it returns two honest cuts rather than three padded ones. Playing
+those against an agent's cut, back to back, is the fastest way to hear what the
+agent is actually contributing.
 
 ### Notes on the WebMCP API
 
@@ -199,6 +215,9 @@ detects this and says so rather than claiming it played.
 | `1`–`9` | Jump to a candidate cut and play it |
 | `K` | Keep all pending clips |
 | `/` | Search the transcript |
+| `⌘Z` / `⌘E` | Undo · export |
+| `?` | Show all of these |
+| `←` `→` `P` | Previous / next / presenter mode, while the demo is open |
 
 ## Layout
 
