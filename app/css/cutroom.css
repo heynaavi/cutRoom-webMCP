@@ -601,3 +601,4 @@ body.dropping::after {
   .tour-dock { width:calc(100vw - 24px); }
 }
 .log-empty .hint { display:block; margin-top:6px; }
+.log-empty .diag { display:block; margin:6px 0; font-family:var(--f-mono); font-size:10.5px; color:var(--faint); word-break:break-all; }

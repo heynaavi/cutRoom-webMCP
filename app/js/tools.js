@@ -8,9 +8,29 @@
      · Every call is logged to a visible ledger, so the human always knows.
    ═══════════════════════════════════════════════════════════════════════════ */
 (() => {
-  const mc = globalThis.document?.modelContext || globalThis.navigator?.modelContext;
   const dot = document.getElementById("agentDot");
   const label = document.getElementById("agentLabel");
+
+  // The spec has churned (provideContext was removed in March 2026; the object
+  // moved from navigator to document), and different runtimes sit on different
+  // snapshots. So: find EVERY surface present, register on each distinct one,
+  // and use the older bulk call too if it exists. Then say exactly what was
+  // found, in the UI, so a runtime that registers-but-never-bridges can be
+  // diagnosed from a screenshot rather than guessed at.
+  const surfaces = [];
+  const seen = new Set();
+  for (const [where, obj] of [["document", globalThis.document?.modelContext], ["navigator", globalThis.navigator?.modelContext]]) {
+    if (!obj || seen.has(obj)) continue;
+    seen.add(obj);
+    const proto = Object.getPrototypeOf(obj) || {};
+    const methods = Object.getOwnPropertyNames(proto).filter((k) => k !== "constructor" && typeof obj[k] === "function");
+    surfaces.push({ where, obj, methods });
+  }
+  const mc = surfaces[0]?.obj;
+  const diag = surfaces.length
+    ? surfaces.map((s) => `${s.where}.modelContext{${s.methods.join(",")}}`).join(" · ")
+    : "no modelContext on document or navigator";
+  globalThis.__cutroomDiag = { surfaces: surfaces.map((s) => ({ where: s.where, methods: s.methods })), ua: navigator.userAgent };
 
   const ok = (data) => ({ content: [{ type: "text", text: JSON.stringify(data) }] });
   const note = (t) => ({ content: [{ type: "text", text: t }] });
@@ -757,19 +777,29 @@
 
   if (!mc || typeof mc.registerTool !== "function") {
     label.textContent = "no WebMCP";
-    dot.title = "This browser doesn't expose document.modelContext. Open in ChatGPT's browser, or Chrome 149+ with chrome://flags/#enable-webmcp-testing.";
-    empty.innerHTML = "<b>This browser has no WebMCP.</b> The page still works by hand — everything an agent can do, you can do here. To hand it to an agent, open it in ChatGPT's browser, or Chrome&nbsp;149+ with <code>chrome://flags/#enable-webmcp-testing</code>.";
+    dot.title = `${diag}\n\nOpen in ChatGPT's browser, or Chrome 149+ with chrome://flags/#enable-webmcp-testing.`;
+    empty.innerHTML = `<b>This browser has no WebMCP.</b> The page still works by hand — everything an agent can do, you can do here. ` +
+      `To hand it to an agent, open it in ChatGPT's browser, or Chrome&nbsp;149+ with <code>chrome://flags/#enable-webmcp-testing</code>. ` +
+      `<code class="diag">${diag}</code>`;
     return;
   }
 
-  Promise.all(TOOLS.map((t) => mc.registerTool(t)))
+  // Register on every distinct surface; also hand the full list to the older
+  // bulk API wherever it still exists. Harmless where it doesn't.
+  const jobs = [];
+  for (const s of surfaces) {
+    if (typeof s.obj.registerTool === "function") jobs.push(...TOOLS.map((t) => Promise.resolve(s.obj.registerTool(t))));
+    if (typeof s.obj.provideContext === "function") jobs.push(Promise.resolve(s.obj.provideContext({ tools: TOOLS })));
+  }
+  Promise.all(jobs)
     .then(() => {
       dot.classList.add("live");
       window.__agentLive = true;      // steer chips become asks, not local edits
       label.textContent = `${TOOLS.length} tools live`;
-      dot.title = TOOLS.map((t) => t.name).join(", ");
+      dot.title = `Registered on: ${diag}\n\n${TOOLS.map((t) => t.name).join(", ")}`;
       empty.innerHTML =
         `<b>${TOOLS.length} tools registered on this page.</b> Nothing has called one yet. ` +
+        `<code class="diag">${diag}</code> ` +
         `<span class="hint">In ChatGPT's browser: pick <b>GPT-5.6 Sol</b> or <b>Terra</b> in the model menu — ` +
         `earlier models don't see site tools — then check <b>Site tools</b> in the address bar lists them. ` +
         `Every call lands here.</span>`;
