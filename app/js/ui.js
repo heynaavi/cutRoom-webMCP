@@ -288,6 +288,16 @@ function renderList() {
   }
 
   const q = S.query.trim().toLowerCase();
+  // Words carry their index so a drag-selection resolves to exact timings.
+  // A transcript line is how the words got grouped, not a unit of meaning.
+  const wordSpans = (seg, query) => {
+    const ws = Store.state.words.filter((w) => w.start >= seg.start - 0.05 && w.end <= seg.end + 0.05);
+    if (!ws.length) return esc(seg.text);
+    return ws.map((w) => {
+      const hit = query && w.word.toLowerCase().includes(query);
+      return `<span class="w" data-wi="${w.wi}">${hit ? `<mark>${esc(w.word)}</mark>` : esc(w.word)}</span>`;
+    }).join(" ");
+  };
   const hi = (t) => {
     if (!q) return esc(t);
     const i = t.toLowerCase().indexOf(q);
@@ -299,7 +309,7 @@ function renderList() {
   list.innerHTML = segs.map((s) => `
     <div class="seg${S.starred.includes(s.i) ? " starred" : ""}${used.has(s.i) ? " used" : ""}${now >= s.start && now < s.end ? " speaking" : ""}" data-seg="${s.i}">
       <span class="seg-ts tnum" data-act="seek">${ts(s.start)}</span>
-      <div class="seg-body"><div class="seg-text">${hi(s.text)}</div></div>
+      <div class="seg-body"><div class="seg-text">${wordSpans(s, q)}</div></div>
       <div class="seg-acts">
         <button class="cbtn" data-act="preview" title="Hear this line">${ICON.ear}</button>
         <button class="cbtn star" data-act="star" title="Star — taste the agent can read">${S.starred.includes(s.i) ? ICON.starOn : ICON.star}</button>
@@ -316,6 +326,11 @@ function wireRail() {
   });
   $("#search").addEventListener("input", (e) => Store.setQuery(e.target.value));
   $("#list").addEventListener("wheel", () => { userScrolledAt = Date.now(); }, { passive: true });
+  document.addEventListener("selectionchange", () => {
+    clearTimeout(window.__selT);
+    window.__selT = setTimeout(onWordSelection, 140);
+  });
+  document.addEventListener("mousedown", (e) => { if (!e.target.closest(".wordsel")) clearWordSel(); });
   $("#list").addEventListener("click", (e) => {
     const cand = e.target.closest("[data-cand]");
     if (cand) { const c = Store.applyCandidate(cand.dataset.cand); if (c) { toast(`“${c.title}” — press Space to hear it`); } return; }
@@ -403,6 +418,47 @@ function parkRow(row) {
   // Smooth is right for line-to-line drift; across 500 lines it becomes a long
   // animated crawl, so jump when the distance is big.
   list.scrollTo({ top: to, behavior: Math.abs(to - list.scrollTop) > 900 ? "auto" : "smooth" });
+}
+
+/* ── word selection ───────────────────────────────────────────────────────── */
+// Select any run of words — inside a line, or across two — and cut exactly
+// that. The unit of a short is a phrase, not whatever the transcriber grouped.
+let selBar = null;
+
+function clearWordSel() { selBar?.remove(); selBar = null; }
+
+function onWordSelection() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return clearWordSel();
+  const anchor = sel.anchorNode?.parentElement?.closest?.("[data-wi]");
+  const focus = sel.focusNode?.parentElement?.closest?.("[data-wi]");
+  if (!anchor || !focus) return clearWordSel();
+
+  const a = +anchor.dataset.wi, b = +focus.dataset.wi;
+  const span = Analysis.spanForWords(Math.min(a, b), Math.max(a, b));
+  if (!span || span.end - span.start < 0.25) return clearWordSel();
+
+  clearWordSel();
+  const rect = sel.getRangeAt(0).getBoundingClientRect();
+  selBar = document.createElement("div");
+  selBar.className = "wordsel";
+  selBar.innerHTML = `<span class="mono tnum">${dur(span.end - span.start)}</span>
+    <button data-s="hear">Hear</button><button data-s="add">Add to reel</button>`;
+  document.body.appendChild(selBar);
+  selBar.style.left = `${Math.max(10, Math.min(window.innerWidth - selBar.offsetWidth - 10, rect.left + rect.width / 2 - selBar.offsetWidth / 2))}px`;
+  selBar.style.top = `${Math.max(8, rect.top - selBar.offsetHeight - 8)}px`;
+
+  selBar.onmousedown = (e) => e.preventDefault();   // keep the selection alive
+  selBar.onclick = (e) => {
+    const act = e.target.closest("[data-s]")?.dataset.s;
+    if (act === "hear") Player.playSpan(span.start, span.end);
+    if (act === "add") {
+      Store.addSpan({ start: span.start, end: span.end });
+      toast(`Added ${dur(span.end - span.start)} — exactly what you selected`);
+      window.getSelection().removeAllRanges();
+      clearWordSel();
+    }
+  };
 }
 
 /* ── agent log ────────────────────────────────────────────────────────────── */

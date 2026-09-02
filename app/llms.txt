@@ -24,6 +24,13 @@ Notes on the calling convention, learned against Chrome 151:
 - `getSource` — title, duration, credit, line count. Call first.
 - `searchTranscript` — find lines by topic, phrase or emotion; filter by length
   so you only get lines that stand alone. Returns exact start/end seconds.
+- `findPhrase` / `addPhrase` / `reshapeClip` — **cut to words, not to lines.**
+  A transcript line is how the words happened to be grouped, not a unit of
+  meaning; the sayable thing is often a phrase inside one line or a run across
+  two. Name the words you want and you get timings accurate to the word. Prefer
+  addPhrase over addSpan when you know what the clip should SAY, and reshapeClip
+  over trimClip when the human tells you where it should start ("from where he
+  says the phone rings").
 - `readTranscript` — read a time window in order, for context around a moment.
 - `getReelState` — the current cut **and every signal the person has given you**:
   `humanVote` and `humanNote` per clip (a thumbs-down means that specific line is

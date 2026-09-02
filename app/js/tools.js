@@ -398,6 +398,86 @@
       },
     },
     {
+      name: "findPhrase",
+      description: "Locate an exact phrase in the recording and get its precise word-level start and end. Transcript lines are an artefact of how words were grouped, not units of meaning — the sayable thing is often a few words inside a line, or a run that straddles two. Use this when you want to cut to a specific wording rather than to a whole line: pass the words as you'd say them and you get back timings accurate to the word.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          phrase: { type: "string", description: "The words to find, e.g. 'the phone rings a little differently'." },
+          nearSec: { type: "number", description: "If the phrase occurs more than once, prefer the one nearest this time." },
+        },
+        required: ["phrase"],
+      },
+      async execute({ phrase, nearSec }) {
+        Store.logTool("findPhrase", `“${String(phrase).slice(0, 34)}”`);
+        const hits = Analysis.findPhrase(phrase, { nearSec: nearSec ?? null });
+        if (!hits.length) return note(`Couldn't find “${phrase}” — the transcript is machine-generated, so try fewer words, or searchTranscript to see the actual wording.`);
+        return ok(hits);
+      },
+    },
+    {
+      name: "addPhrase",
+      description: "Add a clip that starts and ends on exact words rather than at line boundaries. This is how you cut precisely: instead of taking a whole transcript line and trimming it, say what you want the clip to SAY. Give the opening words, and optionally the closing words — the clip runs from the first to the end of the second.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          startPhrase: { type: "string", description: "Words the clip should start on." },
+          endPhrase: { type: "string", description: "Words the clip should end on. Omit to run to the end of that sentence." },
+          nearSec: { type: "number", description: "Disambiguate a repeated phrase by time." },
+          why: { type: "string", description: "Why this earns its place." },
+        },
+        required: ["startPhrase"],
+      },
+      async execute({ startPhrase, endPhrase, nearSec, why }) {
+        const a = Analysis.findPhrase(startPhrase, { nearSec: nearSec ?? null })[0];
+        if (!a) return note(`Couldn't find “${startPhrase}”.`);
+        let end = a.endSec;
+        if (endPhrase) {
+          const b = Analysis.findPhrase(endPhrase, { nearSec: a.startSec }).filter((h) => h.endSec > a.startSec)[0];
+          if (!b) return note(`Found the start, but not “${endPhrase}” after it.`);
+          end = b.endSec;
+        } else {
+          const seg = Store.state.segments.find((s) => s.end > a.startSec);
+          if (seg) end = Math.max(a.endSec, seg.end);
+        }
+        Store.logTool("addPhrase", `“${String(startPhrase).slice(0, 26)}…”`);
+        const c = Store.addSpan({ start: a.startSec, end, why, ghost: true });
+        return note(`Added ${(end - a.startSec).toFixed(1)}s starting on “${a.text}”: “${c.text.slice(0, 100)}”`);
+      },
+    },
+    {
+      name: "reshapeClip",
+      description: "Change where an existing clip starts or ends, by naming the words rather than guessing seconds. Use it when the human says something like 'start it from where he says the phone rings' — far more reliable than nudging with trimClip until it sounds right.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          index: { type: "number", description: "Clip position from getReelState." },
+          startPhrase: { type: "string", description: "New opening words." },
+          endPhrase: { type: "string", description: "New closing words." },
+        },
+        required: ["index"],
+      },
+      async execute({ index, startPhrase, endPhrase }) {
+        const c = Store.state.reel[index];
+        if (!c) return note(`No clip at index ${index}.`);
+        let start = c.start, end = c.end;
+        if (startPhrase) {
+          const h = Analysis.findPhrase(startPhrase, { nearSec: c.start })[0];
+          if (!h) return note(`Couldn't find “${startPhrase}”.`);
+          start = h.startSec;
+        }
+        if (endPhrase) {
+          const h = Analysis.findPhrase(endPhrase, { nearSec: c.end })[0];
+          if (!h) return note(`Couldn't find “${endPhrase}”.`);
+          end = h.endSec;
+        }
+        if (end - start < 0.4) return note("Those boundaries leave nothing between them.");
+        Store.logTool("reshapeClip", `#${index + 1}`);
+        Store.trim(c.id, { headSec: start - c.start, tailSec: end - c.end, snap: false });
+        return note(`Clip ${index + 1} is now ${(end - start).toFixed(1)}s: “${Store.state.reel[index].text.slice(0, 100)}”`);
+      },
+    },
+    {
       name: "playReel",
       description: "Play the current cut out loud for the human, so they can judge it. Do this after proposing — a cut nobody hears is worthless — then ask what they'd change.",
       inputSchema: {

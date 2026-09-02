@@ -192,5 +192,47 @@ const Analysis = (() => {
       ...ws.slice(0, a).map((w) => w.word), ...ws.slice(b + 1).map((w) => w.word)] };
   }
 
-  return { energyMoments, breaths, nearestBreath, checkFlow, tidyEdges };
+  /* ── phrases ────────────────────────────────────────────────────────────── */
+  // Transcript lines are an artefact of how the words were grouped, not a unit
+  // of meaning. The sayable thing is often a phrase inside one line, or a run
+  // that straddles two. Word timings mean we can address any of it exactly.
+  const norm = (t) => t.toLowerCase().replace(/[^a-z0-9' ]/g, " ").replace(/\s+/g, " ").trim();
+
+  /* Locate a phrase in the recording and return its exact word boundaries. */
+  function findPhrase(phrase, { nearSec = null, limit = 5 } = {}) {
+    const words = Store.state.words;
+    if (!words.length) return [];
+    const want = norm(phrase).split(" ").filter(Boolean);
+    if (!want.length) return [];
+    const flat = words.map((w) => norm(w.word));
+    const hits = [];
+    for (let i = 0; i + want.length <= flat.length; i++) {
+      let ok = true;
+      for (let k = 0; k < want.length; k++) {
+        if (flat[i + k] !== want[k]) { ok = false; break; }
+      }
+      if (ok) {
+        const a = words[i], b = words[i + want.length - 1];
+        hits.push({
+          startSec: +a.start.toFixed(2), endSec: +b.end.toFixed(2),
+          durationSec: +(b.end - a.start).toFixed(2),
+          text: words.slice(i, i + want.length).map((w) => w.word).join(" "),
+        });
+      }
+    }
+    if (nearSec != null) hits.sort((x, y) => Math.abs(x.startSec - nearSec) - Math.abs(y.startSec - nearSec));
+    return hits.slice(0, limit);
+  }
+
+  /* Word boundaries for an arbitrary time range — used when a person
+     drag-selects text and we need the span that actually contains it. */
+  function spanForWords(wi0, wi1) {
+    const w = Store.state.words;
+    const a = w[Math.max(0, Math.min(w.length - 1, wi0))];
+    const b = w[Math.max(0, Math.min(w.length - 1, wi1))];
+    if (!a || !b) return null;
+    return { start: +Math.min(a.start, b.start).toFixed(2), end: +Math.max(a.end, b.end).toFixed(2) };
+  }
+
+  return { energyMoments, breaths, nearestBreath, checkFlow, tidyEdges, findPhrase, spanForWords, norm };
 })();
