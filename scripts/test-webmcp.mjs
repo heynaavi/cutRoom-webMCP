@@ -59,7 +59,7 @@ out.search = await ev(`(async () => (await __T("searchTranscript", {query:"the c
 
 out.proposeCut = await ev(`(async () => {
   await __T("proposeCut", { title:"Agent cut", description:"proposed through document.modelContext",
-    spans:[{startSec:320.5,endSec:327.9,why:"where he started"},
+    spans:[{startSec:320.5,endSec:327.9,why:"where she started"},
            {startSec:1126.2,endSec:1132.6,why:"the call itself"}]});
   await new Promise(z=>setTimeout(z,400));
   return { ghostCardsInDom: document.querySelectorAll('.clip.ghost').length,
