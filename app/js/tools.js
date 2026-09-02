@@ -301,7 +301,9 @@
         });
         UI.loadSource(data, mediaUrl || null);
         return note(
-          `Loaded “${title}” — ${data.segments.length} lines, ${Math.round(data.durationSec / 60)} minutes.` +
+          `Loaded “${title}” — ${plural(data.segments.length, "line")}, ${data.durationSec < 90
+             ? plural(Math.round(data.durationSec), "second")
+             : plural(Math.round(data.durationSec / 60), "minute")}.` +
           (mediaUrl ? " Audio attached." : " No audio: the human can drop the media file onto the page to hear cuts, or work silently from the text.")
         );
       },

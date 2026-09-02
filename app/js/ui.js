@@ -901,5 +901,8 @@ function showLoadFailure(err) {
   };
   $("#ownBtn").onclick = () => $("#filePick").click();
 }
-const UI = { loadSource, toast, paint, exportCut, renderVideo, renderTextOnly };
+const UI = { loadSource, toast, paint, exportCut, renderVideo, renderTextOnly,
+             /* The demo is scripted against the sample episode; the tour needs a
+                way back to it if someone has since loaded their own material. */
+             reloadDemoEpisode: () => loadDemoEpisode() };
 boot();

@@ -34,9 +34,11 @@ Three things make it more than a wrapper:
 real audio and returns where the voice lifts above its own baseline. Editors
 will tell you the most clippable moment in an hour is rarely the smartest
 sentence — it's the one with the most life in it. A transcript cannot show you
-that. On the demo episode it surfaces *"isn't that amazing that we did that?"*
-and *"are you going to have a giggle fit?"* — lines no keyword search ranks,
-because the signal is in the delivery. It runs in 4ms over 21,000 samples.
+that. On the demo episode the strongest moment it returns is *"I mean, isn't
+that amazing that we did that?"* at 29:38 — lift 2.85 over her own baseline —
+and *"are you going to have a giggle fit?"* comes fourth. Neither is a line any
+keyword search ranks, because the signal is in the delivery, not the words. It
+runs in **1.7ms over 21,000 envelope samples**.
 
 **2. Taste travels both ways.** Agent proposals land as *pending* clips, never
 silent overwrites. The human thumbs-down a clip or clicks a steer chip
@@ -88,7 +90,7 @@ runs in both directions rather than one:
 
 An agent driving this page through the DOM would scroll 547 lines and guess.
 With tools it calls `searchTranscript("the call came")` and gets
-`{startSec: 1122.4, endSec: 1128.8}` — a precise operation on the *time domain*
+`{startSec: 1122.08, endSec: 1129.78}` — a precise operation on the *time domain*
 of a recording, which is not something you can click.
 
 And the reads are bidirectional. `getReelState` doesn't return a number; it
@@ -128,6 +130,24 @@ Encoding *editorial craft* turned out to matter more than adding tools. The
 tools that make the difference — energy, breath, flow, the human's votes — are
 the ones that carry judgment, not the ones that carry actions.
 
+## Honest limits
+
+- **The tools have only ever been called by an agent in Chrome 149+.** Every
+  documented requirement for ChatGPT's browser is met and verified — origin
+  isolation, `Permissions-Policy: tools=(self)`, registration on
+  `document.modelContext` before first paint — and site tools were enabled on
+  GPT-5.6 Terra. It still reported the bridge as unavailable to it. The Chrome
+  path is the one demonstrated, and `bin/verify.sh` proves it end to end.
+- **A judge with no WebMCP browser** gets a scripted demo of the real tool calls,
+  and a heuristic "suggest cuts from the text" fallback that is deliberately
+  labelled as reading only the words. It's visibly worse than the agent, which
+  is the point.
+- **547 transcript lines all live in the DOM.** Word-level spans are built as
+  rows come into view, which keeps a full re-render at ~17ms, but a three-hour
+  recording would want real virtualisation.
+- **Rendered video is `.webm`** via canvas + MediaRecorder. For anything you'd
+  publish, take `getCutManifest` and the ffmpeg command it hands you.
+
 ## What's next
 
 Speaker diarisation, so "more of her, less of him" becomes a real instruction.
@@ -143,3 +163,6 @@ drives the tools over CDP and prints what came back.
 Without any agent it still works by hand, and an agent that can only *fetch*
 gets `/.well-known/mcp.json` and the transcript so it can still return real
 timestamps rather than inventing them.
+
+Add `?present` to the URL for presenter mode: the demo then holds each step
+until you press `→`, which is how the video was recorded.

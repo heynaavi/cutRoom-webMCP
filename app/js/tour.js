@@ -26,6 +26,12 @@ const Tour = (() => {
     ["visor covering",                     "what it was all for"],
   ];
 
+  /* The demo addresses its five clips by phrase, so it only means anything on
+     the episode those phrases are in. Load your own recording and the script
+     would run through all eight steps proposing nothing — which looks like the
+     page is broken rather than like the demo is off-topic. */
+  const onDemoSource = () => BEATS.every(([q]) => !!seg(q));
+
   const buildCut = (ghost = true) => {
     Store.clear();
     const spans = BEATS.map(([q, why]) => { const s = seg(q); return s && { start: s.start, end: s.end, why }; }).filter(Boolean);
@@ -446,6 +452,12 @@ const Tour = (() => {
 
   async function run() {
     localStorage.setItem(SEEN, "1");
+    // Say what's about to happen rather than silently swapping their material.
+    if (!onDemoSource()) {
+      UI.toast("Loading the sample episode — the demo is scripted against it");
+      const ok = await UI.reloadDemoEpisode();
+      if (!ok) return UI.toast("Couldn't load the sample episode.");
+    }
     openDock();
     seek(0);
     present ? setPresent(true) : play();
@@ -501,7 +513,9 @@ const Tour = (() => {
         ${heroDiagram()}
         <div class="tour-status ${e.cls}">${e.html}</div>
         <div class="tour-actions">
-          <button class="tour-go" id="tourGo">Watch it work<span class="tour-sub">about a minute · real tool calls</span></button>
+          <button class="tour-go" id="tourGo">Watch it work<span class="tour-sub">${onDemoSource()
+            ? "about a minute · real tool calls"
+            : "loads the sample episode · your files stay on disk"}</span></button>
           <button class="tour-skip" id="tourSkip">I'll explore myself</button>
         </div>
         <button class="tour-copy" id="tourCopy">Copy a prompt for your agent</button>
