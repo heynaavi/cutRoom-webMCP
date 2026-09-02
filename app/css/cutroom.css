@@ -304,9 +304,15 @@ input { font:inherit; color:inherit; }
 .chip:disabled { opacity:.4; cursor:default; transform:none; background:var(--surface); color:var(--text-2); }
 
 /* ── right rail ───────────────────────────────────────────────────────────── */
-.rail { display:flex; flex-direction:column; min-height:0; }
-.rail-tabs { display:flex; gap:2px; padding:10px 14px 0; border-bottom:1px solid var(--hairline); }
+/* min-width:0 is load-bearing. Without it a flex child takes its min-content
+   width — here the five tabs plus the search field — and the rail grew 52px
+   past the column it lives in, pushing the whole page sideways at 900px. */
+.rail { display:flex; flex-direction:column; min-height:0; min-width:0; }
+.rail-tabs { display:flex; gap:2px; padding:10px 14px 0; border-bottom:1px solid var(--hairline);
+             overflow-x:auto; scrollbar-width:none; }
+.rail-tabs::-webkit-scrollbar { display:none; }
 .rtab {
+  flex:none; white-space:nowrap;
   padding:7px 13px 9px; font-family:var(--f-mono); font-size:10px; letter-spacing:.12em;
   text-transform:uppercase; color:var(--faint); border-bottom:2px solid transparent; margin-bottom:-1px;
 }
@@ -710,6 +716,65 @@ body.text-only .cut-play { opacity:.4; cursor:not-allowed; }
 }
 .keys-row span { font-size:13.5px; color:var(--text-2); }
 .keys-hint { margin-top:14px; font-size:12px; color:var(--faint); text-align:center; }
+
+/* ── narrow screens ───────────────────────────────────────────────────────── */
+/* This is an editing surface and it wants a desktop, but a link gets opened on
+   a phone whether or not that was the plan. Below 860px the two columns stack
+   and the page scrolls, instead of putting the transcript somewhere off to the
+   right of the screen where nobody will ever find it. */
+@media (max-width:860px) {
+  body { overflow:auto; }
+  .shell { grid-template-rows:auto 1fr; height:auto; min-height:100dvh; }
+
+  .topbar {
+    flex-wrap:wrap; gap:8px 10px; padding:9px 12px;
+    position:sticky; top:0; z-index:40;
+  }
+  .brand { flex:0 0 auto; }
+  .src-chip { order:5; flex:1 1 100%; max-width:100%; }
+  .spacer { display:none; }
+  .agent-dot { margin-left:auto; }
+
+  .main { grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto; }
+  .left { border-right:none; border-bottom:1px solid var(--hairline);
+          grid-template-rows:auto auto auto; }
+  .right { grid-template-rows:auto auto; }
+
+  /* Each region gets its own scroll rather than one very tall page. */
+  .list { max-height:min(58vh, 520px); }
+  .log-body { max-height:180px; }
+
+  /* The steer chips run off the edge; let them slide instead of wrap. */
+  .chips { overflow-x:auto; scrollbar-width:none; }
+  .chips::-webkit-scrollbar { display:none; }
+
+  .reel-head { flex-wrap:wrap; row-gap:8px; }
+  .budget { flex:1 1 140px; }
+  .clip { flex-basis:200px; }
+
+  /* Two panels of controls above the thing you came to read is too much. */
+  .prov { display:none; }
+
+  /* On a phone the transcript is what you came for; everything above it is
+     scroll you have to get past. The stage and the reel keep their proportions
+     but stop reserving desktop-sized room they aren't using. */
+  .stage { padding:14px 14px 2px; }
+  .stage-frame { max-height:min(38vh, 280px); }
+  .reel-head { padding:9px 14px 7px; column-gap:8px; }
+  .strip { height:auto; min-height:120px; padding:0 14px 12px; }
+  .strip-empty { padding:14px 0 18px; }
+  .chips { padding:0 14px; }
+  .rail-tabs, .search, .log-head { padding-left:14px; padding-right:14px; }
+}
+
+@media (max-width:520px) {
+  .stage { padding:10px; }
+  .brand-sub { display:none; }
+  .tour-hero { margin-top:16px; }
+  .th-bar { height:38px; }
+  .th-legend { flex-wrap:wrap; row-gap:4px; }
+  .th-scale { flex:1 1 100%; }
+}
 
 /* ── the hour, drawn ──────────────────────────────────────────────────────── */
 /* 547 hairlines and five blocks. It is the product's one-sentence argument in
