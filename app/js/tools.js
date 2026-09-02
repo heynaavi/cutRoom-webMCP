@@ -43,6 +43,28 @@
     surfaces.push({ where, obj, methods: methodsOf(obj), kind: Object.getPrototypeOf(obj) === Object.prototype ? "plain object" : (obj.constructor?.name || "unknown") });
   }
   const mc = surfaces[0]?.obj;
+
+  // We now look for modelContext in <head>, which is as early as possible —
+  // and that creates a hole: a runtime that INJECTS modelContext after page
+  // load would find us having checked once, found nothing, and given up
+  // forever. So if nothing is there yet, keep watching. Cheap, bounded, and
+  // stops as soon as a surface appears.
+  if (!surfaces.length) {
+    let tries = 0;
+    const look = () => {
+      if (globalThis.document?.modelContext || globalThis.navigator?.modelContext) {
+        clearInterval(iv);
+        removeEventListener("visibilitychange", look);
+        register();               // re-run the whole flow with the surface present
+        return true;
+      }
+      if (++tries > 40) { clearInterval(iv); removeEventListener("visibilitychange", look); }
+      return false;
+    };
+    var iv = setInterval(look, 500);           // ~20s of watching
+    addEventListener("visibilitychange", look); // and whenever the tab is focused
+    addEventListener("pageshow", look);
+  }
   const diag = surfaces.length
     ? surfaces.map((s) => `${s.where}.modelContext [${s.kind}] {${s.methods.join(", ")}}`).join(" · ")
     : "no modelContext on document or navigator";
@@ -805,6 +827,33 @@
       },
     },
   ];
+
+  function register() {
+    // recompute surfaces — the point of re-entry is that they changed
+    surfaces.length = 0; seen.clear();
+    for (const [where, obj] of [["document", globalThis.document?.modelContext], ["navigator", globalThis.navigator?.modelContext]]) {
+      if (!obj || seen.has(obj)) continue;
+      seen.add(obj);
+      surfaces.push({ where, obj, methods: methodsOf(obj), kind: Object.getPrototypeOf(obj) === Object.prototype ? "plain object" : (obj.constructor?.name || "unknown") });
+    }
+    if (!surfaces.length) return;
+    const jobs = [];
+    for (const s of surfaces) {
+      if (typeof s.obj.registerTool === "function") jobs.push(...TOOLS.map((t) => Promise.resolve(s.obj.registerTool(t))));
+      if (typeof s.obj.provideContext === "function") jobs.push(Promise.resolve(s.obj.provideContext({ tools: TOOLS })));
+    }
+    Promise.all(jobs).then(() => {
+      window.__agentLive = true;
+      globalThis.__cutroomDiag.registered = TOOLS.length;
+      globalThis.__cutroomDiag.lateAttach = true;
+      whenDom(() => {
+        const dot = el("agentDot"), label = el("agentLabel"), empty = el("logEmpty");
+        dot.classList.add("live");
+        label.textContent = `${TOOLS.length} tools live`;
+        empty.innerHTML = `<b>${TOOLS.length} tools registered.</b> The agent attached after page load and they were registered then.`;
+      });
+    }).catch(() => {});
+  }
 
   if (!mc || typeof mc.registerTool !== "function") {
     whenDom(() => {
