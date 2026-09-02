@@ -151,8 +151,21 @@ That starts the server and opens Chrome with `--enable-features=WebMCP`. The
 pill top-right should read **"33 tools live"** — that's registration succeeding.
 Point it anywhere with `bin/try.sh https://cutroom-webmcp.vercel.app`.
 
-To prove the tools genuinely run through `document.modelContext` rather than
-just registering:
+To let a **real model** discover and drive the tools — the claim WebMCP actually
+makes — point an API key at the page:
+
+```bash
+ANTHROPIC_API_KEY=… node scripts/agent.mjs "find me 60 seconds on how he went from electrician to astronaut"
+# or OPENAI_API_KEY=…
+```
+
+It reads `getTools()` from the live page, hands those schemas to the model as
+its tool list, executes whatever the model chooses via `executeTool`, and loops.
+Nothing is scripted: the model picks the calls. Without a key it still reports
+what it discovered and exits.
+
+To prove the tools run through `document.modelContext` without involving a
+model:
 
 ```bash
 bin/verify.sh
