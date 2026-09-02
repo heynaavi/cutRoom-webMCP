@@ -46,7 +46,7 @@
       "applicationCategory": "MultimediaApplication",
       "operatingSystem": "Any (web browser)",
       "browserRequirements": "Chrome 149+ with WebMCP enabled, or ChatGPT's browser, for agent features. Works standalone in any modern browser.",
-      "description": "A WebMCP surface for cutting podcast shorts. Exposes ten tools through document.modelContext so an AI agent can search a transcript, propose complete cuts from non-contiguous spans, reorder clips, and play the result — while the person keeps the taste decisions.",
+      "description": "A WebMCP surface for cutting podcast shorts. Exposes 33 tools through document.modelContext so an AI agent can search a transcript, propose complete cuts from non-contiguous spans, reorder clips, and play the result — while the person keeps the taste decisions.",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
       "license": "https://opensource.org/licenses/MIT",
       "featureList": [
@@ -71,12 +71,12 @@
         {
           "@type": "Question",
           "name": "What is WebMCP?",
-          "acceptedAnswer": { "@type": "Answer", "text": "WebMCP is a proposed web standard that lets a website expose structured, callable tools to AI agents through document.modelContext, instead of making the agent scrape the DOM. Cutroom registers ten such tools." }
+          "acceptedAnswer": { "@type": "Answer", "text": "WebMCP is a proposed web standard that lets a website expose structured, callable tools to AI agents through document.modelContext, instead of making the agent scrape the DOM. Cutroom registers 33 such tools." }
         },
         {
           "@type": "Question",
           "name": "How do I use Cutroom with an AI agent?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Open the page in ChatGPT's browser, or in Chrome 149+ with chrome://flags/#enable-webmcp-testing enabled. The indicator in the top bar reads '10 tools live' once registration succeeds. Then ask the agent to find and propose a cut." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Open the page in ChatGPT's browser, or in Chrome 149+ with chrome://flags/#enable-webmcp-testing enabled. The indicator in the top bar reads '33 tools live' once registration succeeds. In ChatGPT's browser, choose GPT-5.6 Sol or Terra — earlier models don't receive site tools. Then ask the agent to find and propose a cut." }
         },
         {
           "@type": "Question",
@@ -89,6 +89,8 @@
 }
 </script>
 
+<!-- Registered first, before any fetch or render, so a runtime that snapshots page tools early finds them. -->
+<script src="js/tools.js"></script>
 <link rel="stylesheet" href="css/cutroom.css" />
 </head>
 <body>
@@ -201,6 +203,5 @@
 <script src="js/wave.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/tour.js"></script>
-<script src="js/tools.js"></script>
 </body>
 </html>
