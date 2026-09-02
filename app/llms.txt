@@ -66,8 +66,8 @@ Notes on the calling convention, learned against Chrome 151:
   meaning; the sayable thing is often a phrase inside one line or a run across
   two. Name the words you want and you get timings accurate to the word. Prefer
   addPhrase over addSpan when you know what the clip should SAY, and reshapeClip
-  over trimClip when the human tells you where it should start ("from where he
-  says the phone rings").
+  over trimClip when the human tells you where it should start ("from where they
+  say the phone rings").
 - `readTranscript` — read a time window in order, for context around a moment.
 - `getReelState` — the current cut **and every signal the person has given you**:
   `humanVote` and `humanNote` per clip (a thumbs-down means that specific line is

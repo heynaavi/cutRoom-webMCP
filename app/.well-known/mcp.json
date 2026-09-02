@@ -531,7 +531,7 @@
     },
     {
       "name": "reshapeClip",
-      "description": "Change where an existing clip starts or ends, by naming the words rather than guessing seconds. Use it when the human says something like 'start it from where he says the phone rings' — far more reliable than nudging with trimClip until it sounds right.",
+      "description": "Change where an existing clip starts or ends, by naming the words rather than guessing seconds. Use it when the human says something like 'start it from where they say the phone rings' — far more reliable than nudging with trimClip until it sounds right.",
       "readOnly": false,
       "inputSchema": {
         "type": "object",
