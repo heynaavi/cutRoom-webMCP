@@ -24,7 +24,8 @@
   --f-body:"DM Sans QE","DM Sans",system-ui,sans-serif;
   --f-mono:"JetBrains Mono QE","JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
   --r-sm:6px; --r:10px; --r-lg:14px; --r-xl:20px;
-  --topbar:56px; --rail:468px; --chips:52px;
+  --measure:660px;
+  --topbar:56px; --rail:clamp(440px,34vw,680px); --chips:52px;
 }
 [data-theme="dark"] {
   --bg:#0f0e0c; --surface:#171613; --surface-2:#1f1d19; --raised:#232019;
@@ -159,7 +160,7 @@ input { font:inherit; color:inherit; }
 .wave i.hot { background:var(--accent); }
 
 /* ── transport ────────────────────────────────────────────────────────────── */
-.transport { display:flex; align-items:center; gap:14px; width:100%; padding-top:18px; }
+.transport { display:flex; align-items:center; gap:14px; width:100%; max-width:var(--measure); padding-top:18px; }
 .play-btn {
   width:42px; height:42px; border-radius:50%; background:var(--accent); color:var(--on-accent);
   display:grid; place-items:center; box-shadow:var(--shadow-1); flex:none;
@@ -180,7 +181,7 @@ input { font:inherit; color:inherit; }
 }
 
 /* ── provenance bar ───────────────────────────────────────────────────────── */
-.prov { width:100%; padding:16px 0 2px; }
+.prov { width:100%; max-width:var(--measure); padding:16px 0 2px; }
 .prov-head {
   display:flex; align-items:baseline; gap:8px; margin-bottom:7px;
   font-family:var(--f-mono); font-size:9.5px; letter-spacing:.14em;
@@ -360,7 +361,7 @@ input { font:inherit; color:inherit; }
 .toast.on { opacity:1; transform:translate(-50%,0); }
 
 @media (max-width:1100px) {
-  :root { --rail:360px; }
+  :root { --rail:min(380px,38vw); --measure:100%; }
   .clip { flex-basis:172px; }
 }
 
