@@ -237,7 +237,12 @@ input { font:inherit; color:inherit; }
   cursor:grab; transition:transform .14s, box-shadow .14s, border-color .14s, opacity .18s;
 }
 .clip:hover { transform:translateY(-2px); box-shadow:var(--shadow-2); }
-.clip.playing { box-shadow:var(--shadow-2); outline:1.5px solid var(--accent); outline-offset:3px; }
+.clip.playing { box-shadow:var(--shadow-2); background:var(--accent-soft); }
+.clip.playing::after {
+  content:""; position:absolute; left:0; top:8px; bottom:8px; width:3px;
+  background:var(--accent); border-radius:0 3px 3px 0;
+}
+.clip.ghost.playing { background:var(--accent-soft); }
 .clip.muted { opacity:.42; }
 .clip.muted .clip-text { text-decoration:line-through; text-decoration-color:var(--faint); }
 .clip.ghost { border-style:dashed; border-color:var(--ghost); background:var(--ghost-soft); }
