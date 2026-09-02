@@ -717,6 +717,19 @@ body.text-only .cut-play { opacity:.4; cursor:not-allowed; }
 .keys-row span { font-size:13.5px; color:var(--text-2); }
 .keys-hint { margin-top:14px; font-size:12px; color:var(--faint); text-align:center; }
 
+/* Words an omission took out. Still legible, clearly gone — an editor checks
+   what a cleanup pass removed, they don't take its word for it. */
+.clip-text s {
+  text-decoration:line-through; text-decoration-thickness:1px;
+  color:var(--faint); opacity:.72;
+}
+/* CSS rather than GSAP so prefers-reduced-motion switches it off for free. */
+@keyframes struck-in {
+  from { background:var(--accent-soft); color:var(--text); opacity:1;
+         text-decoration-color:transparent; }
+}
+.clip-text s.just { animation:struck-in .6s ease-out; border-radius:3px; }
+
 /* ── narrow screens ───────────────────────────────────────────────────────── */
 /* This is an editing surface and it wants a desktop, but a link gets opened on
    a phone whether or not that was the plan. Below 860px the two columns stack

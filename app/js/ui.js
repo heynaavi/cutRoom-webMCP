@@ -150,10 +150,38 @@ function renderProv(sec) {
 /* ── reel ─────────────────────────────────────────────────────────────────── */
 let dragId = null;
 let knownClips = new Set();
+const omitCounts = new Map();
+const flashUntil = new Map();
+
+/* A clip with omissions shows what left, struck through, rather than just a
+   count of it. "5 cuts" is a claim; watching the "um"s go grey is the thing
+   itself — and it's the only way to check the cleanup took out a hesitation
+   and not a word you needed. Pauses have no words in them, so they cost
+   nothing here, which is right: there was never anything to read. */
+function clipTextHTML(c) {
+  const cuts = c.cuts || [];
+  if (!cuts.length) return esc(c.text);
+  const ws = Store.state.words.filter((w) => w.start >= c.start - 0.05 && w.end <= c.end + 0.05);
+  if (!ws.length) return esc(c.text);
+  const dropped = (w) => cuts.some((x) => w.start >= x.start - 0.03 && w.end <= x.end + 0.03);
+  const cls = performance.now() < (flashUntil.get(c.id) || 0) ? ' class="just"' : "";
+  return ws.map((w) => (dropped(w) ? `<s${cls}>${esc(w.word)}</s>` : esc(w.word))).join(" ");
+}
 
 function renderReel() {
   const strip = $("#strip");
   const R = Store.state.reel;
+
+  // A clip that just lost words should say so once, then settle. This can't be
+  // a class added after rendering: renderReel rewrites the whole strip on every
+  // clip boundary during playback, which wiped the animation mid-flight. So the
+  // fact lives outside the DOM, in a deadline the markup reads and that expires
+  // on its own.
+  for (const c of R) {
+    const n = (c.cuts || []).length;
+    if (n > (omitCounts.get(c.id) || 0)) flashUntil.set(c.id, performance.now() + 700);
+    omitCounts.set(c.id, n);
+  }
   if (!R.length) {
     strip.innerHTML = `<div class="strip-empty"><b>The reel is empty</b>
       <span>Add lines from the transcript with <b>+</b>, or ask a connected agent for a cut.</span></div>`;
@@ -168,7 +196,7 @@ function renderReel() {
           ${c.role ? `<span class="role role-${c.role}">${c.role}</span>` : ""}
           <span class="clip-dur tnum">${dur(d)} · ${ts(c.start)}</span>
         </div>
-        <div class="clip-text">${esc(c.text)}</div>
+        <div class="clip-text">${clipTextHTML(c)}</div>
         ${(c.cuts || []).length ? `<div class="clip-omit">${(c.cuts || []).length} omitted · <button data-act="restore">restore</button></div>` : ""}
         ${c.why ? `<div class="clip-why">${esc(c.why)}</div>` : ""}
         <div class="clip-acts">
