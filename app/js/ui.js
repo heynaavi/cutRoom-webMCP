@@ -122,7 +122,7 @@ function renderReel() {
       <span>Add lines from the transcript with <b>+</b>, or ask a connected agent for a cut.</span></div>`;
   } else {
     strip.innerHTML = R.map((c, i) => {
-      const d = c.end - c.start;
+      const d = Store.clipDur(c);
       const playing = Player.currentId === c.id;
       return `<div class="clip${c.muted ? " muted" : ""}${c.ghost ? " ghost" : ""}${playing ? " playing" : ""}${c.vote === "down" ? " voted-down" : ""}"
                    draggable="true" data-id="${c.id}" data-i="${i}">
@@ -132,6 +132,7 @@ function renderReel() {
           <span class="clip-dur tnum">${dur(d)} · ${ts(c.start)}</span>
         </div>
         <div class="clip-text">${esc(c.text)}</div>
+        ${(c.cuts || []).length ? `<div class="clip-omit">${(c.cuts || []).length} omitted · <button data-act="restore">restore</button></div>` : ""}
         ${c.why ? `<div class="clip-why">${esc(c.why)}</div>` : ""}
         <div class="clip-acts">
           <button class="cbtn" data-act="preview" title="Play just this line">${ICON.ear}</button>
@@ -179,11 +180,12 @@ function wireReel() {
     const id = card.dataset.id;
     const c = Store.state.reel.find((x) => x.id === id);
     if (!c) return;
-    if (!btn) { Player.playSpan(c.start, c.end, c.id); return; }
+    if (!btn) { Player.playSequence(Store.spansOf(c)); return; }
     const act = btn.dataset.act;
-    if (act === "preview") Player.playSpan(c.start, c.end, c.id);
+    if (act === "preview") Player.playSequence(Store.spansOf(c));
     if (act === "mute") { Store.toggleMute(id); toast(c.muted ? "Unmuted" : "Muted — play to hear it without this line"); }
     if (act === "drop") Store.removeClip(id);
+    if (act === "restore") { Store.restore(id); toast("Omitted words restored"); }
     if (act === "keep") { Store.keepGhost(id); toast("Kept"); }
     if (act === "up" || act === "down") {
       Store.react(id, act);
@@ -584,7 +586,7 @@ function wireKeys() {
     if (e.key === "/") { e.preventDefault(); Store.setTab("transcript"); $("#search").focus(); }
     if (/^[1-9]$/.test(e.key)) {
       const c = Store.state.candidates[+e.key - 1];
-      if (c) { Store.applyCandidate(c.id); Player.playSequence(Store.live()); toast(`“${c.title}”`); }
+      if (c) { Store.applyCandidate(c.id); Player.playSequence(Store.playSpans()); toast(`“${c.title}”`); }
     }
     if (e.key.toLowerCase() === "k") { const n = Store.keepAllGhosts(); if (n) toast(`Kept ${n} proposed clip${n > 1 ? "s" : ""}`); }
     if (e.key.toLowerCase() === "z" && (e.metaKey || e.ctrlKey)) {
@@ -646,13 +648,12 @@ async function boot() {
   $("#playBtn").onclick = () => {
     if (Player.playing) return Player.pause();
     const l = Store.live();
-    l.length ? Player.playSequence(l) : Player.toggle();
+    l.length ? Player.playSequence(Store.playSpans()) : Player.toggle();
   };
   $("#clearBtn").onclick = () => { Store.clear(); toast("Reel cleared"); };
   $("#cutPlay").onclick = () => {
     if (Player.playing) return Player.pause();
-    const l = Store.live();
-    if (l.length) Player.playSequence(l);
+    if (Store.live().length) Player.playSequence(Store.playSpans());
   };
   $("#undoBtn").onclick = () => { const w = Store.undo(); toast(w ? `Undid “${w}”` : "Nothing to undo"); };
   $("#exportBtn").onclick = () => exportCut("json");

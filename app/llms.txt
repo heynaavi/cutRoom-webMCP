@@ -11,6 +11,10 @@ Source: https://github.com/heynaavi/cutRoom-webMCP (MIT)
 
 ## If you are an agent visiting this page
 
+Call `listCapabilities` first — it's cheaper than reading every description and
+tells you which tools read the AUDIO rather than the transcript. That's the
+part you can't do yourself.
+
 This site registers ten tools on `document.modelContext`. Call `getTools()` and
 you will find them. You do not need to read the DOM — searching a 500-line
 transcript by scrolling is exactly what these tools exist to replace.
@@ -66,6 +70,11 @@ Notes on the calling convention, learned against Chrome 151:
   do it once they're happy.
 - `exportCut` — EDL, JSON or a readable script, for taking into an editor.
 - `tidyClip` — drop leading/trailing filler words ("Um, so…") from a clip.
+- `tightenClip` / `omitPhrase` — take slack out of the MIDDLE of a clip and
+  close the audio up behind it. A clip is a range minus its omissions, so you
+  can delete words from the middle of a line the way a text editor does.
+  `tightenClip` reads the audio for dead air (transcription usually strips the
+  ums, but the hesitation is still in the recording).
 - `fitToBudget` — trim the whole cut to a target length proportionally.
 - `playCandidate` — play a previous proposal WITHOUT loading it, so they can
   compare two angles without losing the one they're working on.

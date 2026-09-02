@@ -478,6 +478,74 @@
       },
     },
     {
+      name: "listCapabilities",
+      description: "What this page can do, and the order it's usually worth doing it in. Call it first if you've just arrived and want your bearings — it's cheaper than reading every tool description, and it tells you which tools read the AUDIO rather than the transcript, which is where this page can do things you can't do yourself.",
+      inputSchema: { type: "object", properties: {} },
+      async execute() {
+        Store.logTool("listCapabilities", "");
+        return ok({
+          whatThisIs: "A cutting surface for turning a long recording into a short. You do the finding and proposing; the person listening does the judging. Nothing you do is final until they keep it.",
+          readsTheAudioNotTheTranscript: ["findEnergyMoments", "snapToBreath", "tightenClip"],
+          suggestedOrder: [
+            "getSource — what am I cutting",
+            "searchTranscript + findEnergyMoments — topic and delivery; the best clips are where they overlap",
+            "proposeCut ×2-3 — contrasting angles, not one best answer",
+            "playReel — a cut nobody hears is worthless",
+            "getReelState — read their votes, notes, mutes before revising",
+            "checkFlow — what an editor would flag",
+            "trimClip / reshapeClip / snapToBreath / removeFillers — fix it",
+            "renderVideo or exportCut — hand them something they can use",
+          ],
+          precisionNote: "Transcript lines are how words got grouped, not units of meaning. Prefer findPhrase/addPhrase/reshapeClip to cut on words. Clips can also have stretches omitted from the middle — see tightenClip and omitPhrase.",
+          theHumanTalksBack: "humanVote, humanNote and humanAsked in getReelState are them steering you. Read them.",
+          toolCount: TOOLS.length,
+        });
+      },
+    },
+    {
+      name: "tightenClip",
+      description: "Take the slack out of the MIDDLE of a clip and close the audio up behind it, the way a text-based editor does — hesitation words if the transcript kept them, and over-long pauses whether it did or not. Transcription usually strips 'um' and 'uh', but the hesitation is still there in the audio as dead air, and this reads the audio. Different from tidyClip, which only trims the edges. Use it on a clip that says the right thing but drags.",
+      inputSchema: {
+        type: "object",
+        properties: { index: { type: "number", description: "Clip position, or omit to clean every clip." } },
+      },
+      async execute({ index }) {
+        const targets = index == null ? Store.state.reel : [Store.state.reel[index]].filter(Boolean);
+        if (!targets.length) return note("No clip there.");
+        const before = Store.reelDur();
+        let n = 0; const what = [];
+        for (const c of targets) {
+          for (const f of Analysis.slackIn(c)) { Store.omit(c.id, f.start, f.end); what.push(f.why); n++; }
+        }
+        if (!n) return note("Nothing slack to take out — these clips are already tight.");
+        Store.logTool("tightenClip", `${n} cuts`);
+        const saved = (before - Store.reelDur()).toFixed(1);
+        return note(`Took out ${n} (${what.slice(0, 6).join(", ")}${what.length > 6 ? "…" : ""}), saving ${saved}s. The cut is now ${Math.round(Store.reelDur())}s. Play it back — closing up audio can occasionally sound clipped.`);
+      },
+    },
+    {
+      name: "omitPhrase",
+      description: "Cut a specific run of words out of the MIDDLE of a clip, keeping what's either side. Use it when a line is nearly right but carries a tangent, a stumble, or a name that means nothing out of context — the sort of thing you'd delete in a text editor and expect the audio to close up behind.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          index: { type: "number", description: "Clip position from getReelState." },
+          phrase: { type: "string", description: "The words to take out." },
+        },
+        required: ["index", "phrase"],
+      },
+      async execute({ index, phrase }) {
+        const c = Store.state.reel[index];
+        if (!c) return note(`No clip at index ${index}.`);
+        const hit = Analysis.findPhrase(phrase, { nearSec: c.start })
+          .find((h) => h.startSec >= c.start - 0.1 && h.endSec <= c.end + 0.1);
+        if (!hit) return note(`“${phrase}” isn't inside clip ${index + 1}. Its text is: “${c.text}”`);
+        Store.logTool("omitPhrase", `“${String(phrase).slice(0, 26)}”`);
+        Store.omit(c.id, hit.startSec, hit.endSec);
+        return note(`Took out “${hit.text}”. Clip ${index + 1} now says: “${Store.state.reel[index].text.slice(0, 120)}”`);
+      },
+    },
+    {
       name: "playReel",
       description: "Play the current cut out loud for the human, so they can judge it. Do this after proposing — a cut nobody hears is worthless — then ask what they'd change.",
       inputSchema: {
@@ -488,7 +556,7 @@
         const l = Store.live();
         if (!l.length) return note("The reel is empty — nothing to play.");
         Store.logTool("playReel", `${l.length} clips`);
-        const started = await Player.playSequence(l.slice(Math.max(0, fromIndex)));
+        const started = await Player.playSequence(Store.playSpans());
         const total = l.reduce((n, c) => n + (c.end - c.start), 0);
         if (!started) {
           return note(

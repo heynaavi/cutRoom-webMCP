@@ -234,5 +234,37 @@ const Analysis = (() => {
     return { start: +Math.min(a.start, b.start).toFixed(2), end: +Math.max(a.end, b.end).toFixed(2) };
   }
 
-  return { energyMoments, breaths, nearestBreath, checkFlow, tidyEdges, findPhrase, spanForWords, norm };
+  /* Slack inside a clip: hesitation words if the transcript kept them, and
+     over-long pauses whether it did or not.
+
+     Transcription models usually strip "um" and "uh" — whisper removed every
+     one from this recording — so a word-based filler remover is inert on a
+     clean transcript. The hesitation is still THERE in the audio, as dead air.
+     Reading the envelope catches it either way, which is the point of having
+     the audio at all. */
+  const MID_FILLER = /^(um|uh|er|erm|ah|hmm|mhm)$/i;
+
+  function slackIn(clip, { keepSec = 0.28 } = {}) {
+    const cuts = [];
+    const ws = Store.state.words.filter((w) => w.start >= clip.start && w.end <= clip.end);
+
+    for (const w of ws) {
+      if (MID_FILLER.test(w.word.replace(/[^a-z]/gi, ""))) {
+        cuts.push({ start: Math.max(clip.start, w.start - 0.04), end: Math.min(clip.end, w.end + 0.06), why: w.word });
+      }
+    }
+
+    // Dead air between words, trimmed back to a natural beat rather than removed
+    // outright — cutting every pause makes people sound like machines.
+    for (const b of breaths()) {
+      if (b.start <= clip.start + 0.15 || b.end >= clip.end - 0.15) continue;
+      const len = b.end - b.start;
+      if (len <= keepSec + 0.22) continue;
+      cuts.push({ start: +(b.start + keepSec / 2).toFixed(2), end: +(b.end - keepSec / 2).toFixed(2),
+                  why: `${len.toFixed(1)}s pause` });
+    }
+    return cuts.sort((a, b) => a.start - b.start);
+  }
+
+  return { energyMoments, breaths, nearestBreath, checkFlow, tidyEdges, findPhrase, spanForWords, slackIn, norm };
 })();

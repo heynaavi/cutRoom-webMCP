@@ -469,3 +469,9 @@ body.dropping::after {
   color:var(--bg); background:rgba(255,255,255,.13); transition:background .13s;
 }
 .wordsel button:hover { background:var(--accent); color:var(--on-accent); }
+
+.clip-omit {
+  font-family:var(--f-mono); font-size:9.5px; letter-spacing:.06em;
+  color:var(--faint); display:flex; align-items:center; gap:6px;
+}
+.clip-omit button { color:var(--accent); text-decoration:underline; font:inherit; }

@@ -62,6 +62,10 @@ that responds to *that* is reading taste, not executing a task.
 | `renderVideo` | **Renders a real 1080×1920 video** with burned-in captions, in-browser |
 | `exportCut` | EDL / JSON / script, so the cut can leave the browser |
 | `tidyClip` | Drop leading/trailing filler words from a clip |
+| `tightenClip` | Close up dead air *inside* a clip, read from the audio |
+| `omitPhrase` | Delete words from the middle; the audio closes up behind |
+| `findPhrase` / `addPhrase` / `reshapeClip` | Cut on words, not transcript lines |
+| `listCapabilities` | What's here and the order worth doing it in |
 | `fitToBudget` | Trim the whole cut to a target length |
 | `playCandidate` | Play an alternative without disturbing the reel |
 | `undoLastChange` | An agent can replace the whole reel in one call |

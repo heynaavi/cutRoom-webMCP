@@ -41,7 +41,27 @@ const Store = (() => {
   // it. Only muting removes a clip from playback. `ghost` is about provenance
   // (who put it there, is it accepted yet), never about audibility.
   const live = () => state.reel.filter((c) => !c.muted);
-  const dur = (list) => list.reduce((n, c) => n + (c.end - c.start), 0);
+
+  // A clip is a range MINUS any omitted stretches. That's what lets you delete
+  // a word from the middle of a line and have the audio close up behind it —
+  // the interaction people expect from text-based editors. Playback and
+  // duration both work off the expanded spans, never off start/end.
+  const spansOf = (c) => {
+    const cuts = (c.cuts || []).slice().sort((a, b) => a.start - b.start);
+    if (!cuts.length) return [{ start: c.start, end: c.end, id: c.id }];
+    const out = [];
+    let at = c.start;
+    for (const x of cuts) {
+      if (x.start > at + 0.02) out.push({ start: at, end: Math.min(x.start, c.end), id: c.id });
+      at = Math.max(at, x.end);
+    }
+    if (c.end > at + 0.02) out.push({ start: at, end: c.end, id: c.id });
+    return out.filter((s) => s.end > s.start + 0.02);
+  };
+  const clipDur = (c) => spansOf(c).reduce((n, s) => n + (s.end - s.start), 0);
+  const playSpans = () => live().flatMap(spansOf);
+
+  const dur = (list) => list.reduce((n, c) => n + clipDur(c), 0);
   const reelDur = () => dur(live());
 
   // Spread: how much of the source the cut draws on. A short built entirely
@@ -89,7 +109,7 @@ const Store = (() => {
 
   // ── mutations ─────────────────────────────────────────────────────────────
   const api = {
-    state, on, emit, live, reelDur, spread, search,
+    state, on, emit, live, reelDur, spread, search, spansOf, clipDur, playSpans,
 
     load(data) {
       state.source = { title: data.title, durationSec: data.durationSec, credit: data.credit || "" };
@@ -111,7 +131,7 @@ const Store = (() => {
     addSpan({ start, end, text, why, ghost = false, at = null }) {
       snapshot("add clip");
       const clip = { id: nid(), start, end, text: text || api.textBetween(start, end),
-                     muted: false, ghost, why: why || null, vote: null, note: null, role: null };
+                     muted: false, ghost, why: why || null, vote: null, note: null, role: null, cuts: [] };
       if (at == null || at >= state.reel.length) state.reel.push(clip);
       else state.reel.splice(Math.max(0, at), 0, clip);
       emit("reel");
@@ -193,6 +213,33 @@ const Store = (() => {
       return c;
     },
 
+    /* Excise a stretch from the middle of a clip. The words stop being spoken;
+       the clip keeps its shape either side. */
+    omit(id, start, end) {
+      const c = state.reel.find((x) => x.id === id);
+      if (!c || end <= start) return null;
+      snapshot("omit words");
+      c.cuts = [...(c.cuts || []), { start: +start.toFixed(2), end: +end.toFixed(2) }];
+      c.text = api.textOf(c);
+      emit("reel");
+      return c;
+    },
+
+    restore(id) {
+      const c = state.reel.find((x) => x.id === id);
+      if (!c || !(c.cuts || []).length) return null;
+      snapshot("restore omitted");
+      c.cuts = [];
+      c.text = api.textOf(c);
+      emit("reel");
+      return c;
+    },
+
+    /* What the clip actually says, once omissions are taken out. */
+    textOf(c) {
+      return spansOf(c).map((s) => api.textBetween(s.start, s.end)).join(" ").replace(/\s+/g, " ").trim();
+    },
+
     /* Trim every clip proportionally until the cut fits the budget. Takes it
        off the tails, where a second is least likely to be load-bearing. */
     fitToBudget(target) {
@@ -258,7 +305,7 @@ const Store = (() => {
       c.appliedAt = Date.now();
       state.reel = c.spans.map((s) => ({
         id: nid(), start: s.start, end: s.end, text: s.text,
-        muted: false, ghost: asGhost, why: s.why || null, vote: null, note: null, role: s.role || null,
+        muted: false, ghost: asGhost, why: s.why || null, vote: null, note: null, role: s.role || null, cuts: [],
       }));
       state.activeCand = id;
       emit("reel"); emit("cands");
@@ -298,7 +345,8 @@ const Store = (() => {
       return {
         clips: state.reel.map((c, i) => ({
           index: i, startSec: +c.start.toFixed(2), endSec: +c.end.toFixed(2),
-          durationSec: +(c.end - c.start).toFixed(2),
+          durationSec: +clipDur(c).toFixed(2),
+          omittedCount: (c.cuts || []).length,
           text: c.text, muted: !!c.muted, pending: !!c.ghost, why: c.why,
           humanVote: c.vote, humanNote: c.note, role: c.role || null,
         })),
