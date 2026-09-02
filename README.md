@@ -61,7 +61,7 @@ that responds to *that* is reading taste, not executing a task.
 3. **The agent brings it** — `loadTranscript` lets ChatGPT hand over a
    transcript it already has. The agent *is* the file picker.
 
-## Running it
+## Trying it
 
 No build, no backend, no API keys — it's static files.
 
@@ -69,15 +69,42 @@ No build, no backend, no API keys — it's static files.
 npx -y serve app -l 4321
 ```
 
-Then open <http://localhost:4321>.
+**With WebMCP on** (macOS, Chrome 149+):
 
-To connect an agent, open the page in ChatGPT's browser, or in Chrome 149+ with
-`chrome://flags/#enable-webmcp-testing` enabled. The dot in the top bar turns
-green and reads *"10 tools live"* when registration succeeds.
+```bash
+bin/try.sh
+```
 
-**Without an agent it still works** — hit *Suggest three cuts* in the Cuts tab
-for keyword-built starters. Playing those against an agent's cut is the fastest
-way to hear what the agent is actually contributing.
+That starts the server and opens Chrome with `--enable-features=WebMCP`. The
+pill top-right should read **"10 tools live"** — that's registration succeeding.
+Point it anywhere with `bin/try.sh https://your-deploy.vercel.app`.
+
+To prove the tools genuinely run through `document.modelContext` rather than
+just registering:
+
+```bash
+bin/verify.sh
+```
+
+It drives the page over CDP — searches the transcript, proposes a cut, checks
+the pending clips actually appear in the DOM, and confirms `getReelState`
+reports back what the human did.
+
+**Without any agent it still works** — *Suggest three cuts* in the Cuts tab
+builds keyword-based starters. Playing those against an agent's cut, back to
+back, is the fastest way to hear what the agent is actually contributing.
+
+### Notes on the WebMCP API
+
+Two things the docs are quiet about, learned the hard way against Chrome 151:
+
+- `executeTool` takes the **tool object** from `getTools()`, not its name.
+- Arguments go in as a **JSON string**, and the result comes back as one too —
+  your `{content:[{type:"text",text}]}` envelope is serialised for you.
+
+Also: Chrome will not let a page start audio before the human has interacted
+with it, so an agent calling `playReel` first thing gets refused. The tool
+detects this and says so rather than claiming it played.
 
 ## Keyboard
 
