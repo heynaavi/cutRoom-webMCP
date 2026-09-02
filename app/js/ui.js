@@ -211,7 +211,7 @@ function renderReel() {
   $("#cutPlayIcon").innerHTML = Player.playing ? ICON.pause : ICON.play;
   $("#cutPlayLabel").textContent = Player.playing ? "Stop" : live ? `Play cut · ${Math.round(d)}s` : "Play cut";
   $("#exportBtn").disabled = !live;
-  $("#renderBtn").disabled = !live || Render.busy;
+  $("#renderBtn").disabled = !live || Render.busy || !!Store.state.textOnly;
   $("#undoBtn").disabled = !Store.canUndo();
   const ka = $("#keepAllBtn");
   ka.hidden = !ghosts;
@@ -567,6 +567,13 @@ const tc = (s) => {
   return `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Math.floor(t / 60) % 60).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}:${String(f).padStart(2, "0")}`;
 };
 
+const srtT = (s) => {
+  const ms = Math.round((s % 1) * 1000);
+  const t = Math.floor(s);
+  return `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Math.floor(t / 60) % 60).padStart(2, "0")}`
+       + `:${String(t % 60).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
+};
+
 function exportCut(format = "json") {
   const l = Store.live();
   if (!l.length) { toast("Nothing to export"); return null; }
@@ -582,6 +589,18 @@ function exportCut(format = "json") {
       const line = `${String(i + 1).padStart(3, "0")}  AX       AA/V  C        ${tc(c.start)} ${tc(c.end)} ${tc(rec)} ${tc(rec + d)}\n* FROM CLIP NAME: ${src.title}\n* ${c.text}\n`;
       rec += d;
       return line;
+    }).join("\n");
+  } else if (format === "srt") {
+    // Captions for the finished short, so the timecodes run against the CUT,
+    // not the source recording — clip 2 starts where clip 1 ended, and a clip
+    // with a hesitation omitted from its middle is that much shorter.
+    ext = "srt"; type = "text/plain";
+    let at = 0;
+    body = l.map((c, i) => {
+      const d = Store.clipDur(c);
+      const cue = `${i + 1}\n${srtT(at)} --> ${srtT(at + d)}\n${c.text.trim()}\n`;
+      at += d;
+      return cue;
     }).join("\n");
   } else if (format === "text") {
     ext = "txt"; type = "text/plain";
@@ -736,6 +755,11 @@ function renderTextOnly() {
   document.body.classList.toggle("text-only", on);
   $("#playBtn").disabled = on;
   $("#playBtn").title = on ? "No audio loaded — drop the media file to hear cuts" : "Play";
+  // Rendering is a real-time recording of playback, so it needs sound too.
+  const rb = $("#renderBtn");
+  rb.title = on
+    ? "No audio loaded — drop the media file, or export the timestamps and cut with ffmpeg"
+    : "Render a vertical video with burned-in captions";
   renderCaption(Player.time || 0);
 }
 

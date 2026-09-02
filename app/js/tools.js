@@ -350,18 +350,22 @@
     },
     {
       name: "exportCut",
-      description: "Hand the finished cut to the human as a file they can take into an editor. 'edl' gives timecoded in/out points, 'json' gives the raw spans and text, 'text' gives a readable script. Offer this once they sound happy — a cut that can't leave the browser is a toy.",
+      description: "Hand the finished cut to the human as a file they can take into an editor. 'edl' gives timecoded in/out points against the source, 'json' gives the raw spans and text, 'srt' gives captions timed against the FINISHED cut (so they burn straight onto the exported video), 'text' gives a readable script. Offer this once they sound happy — a cut that can't leave the browser is a toy.",
       annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object", additionalProperties: false,
-        properties: { format: { type: "string", enum: ["edl", "json", "text"], description: "Defaults to json." } },
+        properties: { format: { type: "string", enum: ["edl", "json", "srt", "text"], description: "Defaults to json." } },
       },
       async execute({ format = "json" }) {
         const l = Store.live();
         if (!l.length) return note("The reel is empty — nothing to export.");
         Store.logTool("exportCut", format);
         const name = UI.exportCut(format);
-        return note(`Exported ${l.length} clips as ${format.toUpperCase()} — the file “${name}” is downloading for them now.`);
+        // Report the extension that came back, not the one that was asked for.
+        // An unrecognised format falls through to JSON, and claiming otherwise
+        // would have the agent telling them a file exists that doesn't.
+        const got = (name.split(".").pop() || "file").toUpperCase();
+        return note(`Exported ${plural(l.length, "clip")} as ${got} — the file “${name}” is downloading for them now.`);
       },
     },
     {

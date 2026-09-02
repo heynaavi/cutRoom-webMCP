@@ -94,6 +94,12 @@ const Render = (() => {
     if (busy) return { ok: false, error: "A render is already running." };
     const clips = Store.live();
     if (!clips.length) return { ok: false, error: "The reel is empty." };
+    // Recording is real-time playback through the audio graph. With no media
+    // loaded there is nothing to play, and this would spend a minute producing
+    // a silent file. Say so instead — the timestamps still export fine.
+    if (Store.state.textOnly || !Player.el.currentSrc) {
+      return { ok: false, error: "No audio is loaded, so there's nothing to record. Drop the media file onto the page, or export the timestamps and cut with ffmpeg." };
+    }
     const a = audio();
     if (!a || !window.MediaRecorder) return { ok: false, error: "This browser can't record canvas video." };
 

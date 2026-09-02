@@ -52,7 +52,9 @@ cut, a join that cuts in mid-flow, everything drawn from one stretch.
 `snapToBreath` moves cut points to real pauses. `cleanUpCut` removes stammers
 and dead air from the *middle* of a clip and closes the audio up behind them.
 `getCutManifest` returns every span to a hundredth of a second, plus a ffmpeg
-command — we decide what to cut; ffmpeg does the cutting.
+command — we decide what to cut; ffmpeg does the cutting. `exportCut` hands
+over EDL, JSON, a readable script, or **SRT captions timed against the finished
+cut** rather than the source, so they burn straight onto the exported video.
 
 ## Why WebMCP fits this use case
 
