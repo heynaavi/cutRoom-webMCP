@@ -17,6 +17,8 @@ const ICON = {
   mute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9l4 6M21 9l-4 6"/></svg>',
   sound: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9H4zM17 8.5a5 5 0 010 7"/></svg>',
   ear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 5v14l11-7z"/></svg>',
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 21V10l5-7 1.2.8a2 2 0 01.8 2.2L13 10h5.2a2 2 0 012 2.5l-1.7 6.5a2 2 0 01-2 1.5H7z"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M17 3v11l-5 7-1.2-.8a2 2 0 01-.8-2.2L11 14H5.8a2 2 0 01-2-2.5l1.7-6.5a2 2 0 012-1.5H17z"/></svg>',
 };
 
 let PEAKS = null;
@@ -119,11 +121,10 @@ function renderReel() {
     strip.innerHTML = `<div class="strip-empty"><b>The reel is empty</b>
       <span>Add lines from the transcript with <b>+</b>, or ask a connected agent for a cut.</span></div>`;
   } else {
-    const liveIdx = new Map(Store.live().map((c, i) => [c.id, i]));
     strip.innerHTML = R.map((c, i) => {
       const d = c.end - c.start;
-      const playing = Player.seqIndex >= 0 && liveIdx.get(c.id) === Player.seqIndex;
-      return `<div class="clip${c.muted ? " muted" : ""}${c.ghost ? " ghost" : ""}${playing ? " playing" : ""}"
+      const playing = Player.currentId === c.id;
+      return `<div class="clip${c.muted ? " muted" : ""}${c.ghost ? " ghost" : ""}${playing ? " playing" : ""}${c.vote === "down" ? " voted-down" : ""}"
                    draggable="true" data-id="${c.id}" data-i="${i}">
         <div class="clip-top">
           <span class="clip-n">${c.ghost ? "PROPOSED" : String(i + 1).padStart(2, "0")}</span>
@@ -136,6 +137,8 @@ function renderReel() {
           ${c.ghost
             ? `<button class="cbtn keep" data-act="keep" title="Keep">${ICON.check}</button>`
             : `<button class="cbtn" data-act="mute" title="${c.muted ? "Unmute" : "Mute — hear the cut without it"}">${c.muted ? ICON.mute : ICON.sound}</button>`}
+          <button class="cbtn up${c.vote === "up" ? " on" : ""}" data-act="up" title="Works — the agent reads this">${ICON.up}</button>
+          <button class="cbtn down${c.vote === "down" ? " on" : ""}" data-act="down" title="Doesn't work — the agent reads this">${ICON.down}</button>
           <button class="cbtn drop" data-act="drop" title="Remove">${ICON.x}</button>
         </div>
       </div>`;
@@ -151,6 +154,18 @@ function renderReel() {
   const num = $("#budgetNum");
   num.classList.toggle("over", d > T);
   num.innerHTML = `<b>${Math.round(d)}s</b> / ${T}s`;
+
+  const live = Store.live().length;
+  const ghosts = R.filter((c) => c.ghost).length;
+  const cp = $("#cutPlay");
+  cp.disabled = !live;
+  $("#cutPlayIcon").innerHTML = Player.playing ? ICON.pause : ICON.play;
+  $("#cutPlayLabel").textContent = Player.playing ? "Stop" : live ? `Play cut · ${Math.round(d)}s` : "Play cut";
+  $("#exportBtn").disabled = !live;
+  $("#undoBtn").disabled = !Store.canUndo();
+  const ka = $("#keepAllBtn");
+  ka.hidden = !ghosts;
+  ka.textContent = `Keep all ${ghosts}`;
 }
 
 function wireReel() {
@@ -162,12 +177,17 @@ function wireReel() {
     const id = card.dataset.id;
     const c = Store.state.reel.find((x) => x.id === id);
     if (!c) return;
-    if (!btn) { Player.playSpan(c.start, c.end); return; }
+    if (!btn) { Player.playSpan(c.start, c.end, c.id); return; }
     const act = btn.dataset.act;
-    if (act === "preview") Player.playSpan(c.start, c.end);
+    if (act === "preview") Player.playSpan(c.start, c.end, c.id);
     if (act === "mute") { Store.toggleMute(id); toast(c.muted ? "Unmuted" : "Muted — play to hear it without this line"); }
     if (act === "drop") Store.removeClip(id);
     if (act === "keep") { Store.keepGhost(id); toast("Kept"); }
+    if (act === "up" || act === "down") {
+      Store.react(id, act);
+      const v = Store.state.reel.find((x) => x.id === id)?.vote;
+      toast(v ? (v === "up" ? "Marked as working — a connected agent reads this" : "Marked as not working — the agent will see why") : "Reaction cleared");
+    }
   });
   strip.addEventListener("dragstart", (e) => {
     const card = e.target.closest(".clip"); if (!card) return;
@@ -340,6 +360,50 @@ function renderLog() {
   body.insertAdjacentHTML("beforeend", rows);
 }
 
+/* ── export ───────────────────────────────────────────────────────────────── */
+const tc = (s) => {
+  const f = Math.round((s % 1) * 25);
+  const t = Math.floor(s);
+  return `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Math.floor(t / 60) % 60).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}:${String(f).padStart(2, "0")}`;
+};
+
+function exportCut(format = "json") {
+  const l = Store.live();
+  if (!l.length) { toast("Nothing to export"); return null; }
+  const src = Store.state.source;
+  const slug = (src.title || "cut").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  let body, ext, type;
+
+  if (format === "edl") {
+    ext = "edl"; type = "text/plain";
+    let rec = 0;
+    body = `TITLE: ${src.title}\nFCM: NON-DROP FRAME\n\n` + l.map((c, i) => {
+      const d = c.end - c.start;
+      const line = `${String(i + 1).padStart(3, "0")}  AX       AA/V  C        ${tc(c.start)} ${tc(c.end)} ${tc(rec)} ${tc(rec + d)}\n* FROM CLIP NAME: ${src.title}\n* ${c.text}\n`;
+      rec += d;
+      return line;
+    }).join("\n");
+  } else if (format === "text") {
+    ext = "txt"; type = "text/plain";
+    body = `${src.title} — ${Math.round(Store.reelDur())}s cut\n${src.credit ? src.credit + "\n" : ""}\n` +
+      l.map((c, i) => `${i + 1}. [${ts(c.start)}–${ts(c.end)}]  ${c.text}${c.why ? `\n   (${c.why})` : ""}`).join("\n\n");
+  } else {
+    ext = "json"; type = "application/json";
+    body = JSON.stringify({
+      title: src.title, credit: src.credit, durationSec: +Store.reelDur().toFixed(2),
+      clips: l.map((c) => ({ startSec: c.start, endSec: c.end, text: c.text, why: c.why })),
+    }, null, 2);
+  }
+
+  const url = URL.createObjectURL(new Blob([body], { type }));
+  const a = document.createElement("a");
+  a.href = url; a.download = `${slug}-cut.${ext}`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`Exported ${l.length} clips as ${ext.toUpperCase()}`);
+  return `${slug}-cut.${ext}`;
+}
+
 /* ── taste chips ──────────────────────────────────────────────────────────── */
 // Each chip is the same operation a connected agent would invoke as a tool.
 // With no agent they still work locally, so the page is useful on its own.
@@ -365,10 +429,18 @@ function wireChips() {
   $("#chips").addEventListener("click", (e) => {
     const b = e.target.closest(".chip"); if (!b) return;
     const [label, fn, msg] = CHIPS[+b.dataset.chip];
-    const next = fn(Store.state.reel.slice());
-    Store.state.reel = next;
-    Store.emit("reel");
+    // The chip is first and foremost a note in the human's own words —
+    // getReelState hands it to the agent as `humanAsked`. The local heuristic
+    // is a fallback so the page still does something with no agent attached.
+    Store.addNote(label.toLowerCase());
     Store.logTool("steer", label.toLowerCase());
+    if (window.__agentLive) {
+      toast(`Noted: “${label.toLowerCase()}” — ask your agent to revise`);
+      return;
+    }
+    Store.snapshot(`steer: ${label.toLowerCase()}`);
+    Store.state.reel = fn(Store.state.reel.slice());
+    Store.emit("reel");
     toast(msg);
   });
 }
@@ -388,6 +460,12 @@ function wireKeys() {
       if (c) { Store.applyCandidate(c.id); Player.playSequence(Store.live()); toast(`“${c.title}”`); }
     }
     if (e.key.toLowerCase() === "k") { const n = Store.keepAllGhosts(); if (n) toast(`Kept ${n} proposed clip${n > 1 ? "s" : ""}`); }
+    if (e.key.toLowerCase() === "z" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      const w = Store.undo();
+      toast(w ? `Undid “${w}”` : "Nothing to undo");
+    }
+    if (e.key.toLowerCase() === "e" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); exportCut("json"); }
   });
 }
 
@@ -444,6 +522,14 @@ async function boot() {
     l.length ? Player.playSequence(l) : Player.toggle();
   };
   $("#clearBtn").onclick = () => { Store.clear(); toast("Reel cleared"); };
+  $("#cutPlay").onclick = () => {
+    if (Player.playing) return Player.pause();
+    const l = Store.live();
+    if (l.length) Player.playSequence(l);
+  };
+  $("#undoBtn").onclick = () => { const w = Store.undo(); toast(w ? `Undid “${w}”` : "Nothing to undo"); };
+  $("#exportBtn").onclick = () => exportCut("json");
+  $("#keepAllBtn").onclick = () => { const n = Store.keepAllGhosts(); if (n) toast(`Kept ${n} clip${n > 1 ? "s" : ""}`); };
   $("#themeBtn").onclick = () => {
     const dark = document.documentElement.dataset.theme === "dark";
     document.documentElement.dataset.theme = dark ? "light" : "dark";
@@ -478,5 +564,5 @@ async function boot() {
   $("#search").placeholder = `Search ${Math.round(data.durationSec / 60)} minutes…`;
   renderReel(); renderChips(); renderList(); renderLog(); paint(0);
 }
-const UI = { loadSource, toast, paint };
+const UI = { loadSource, toast, paint, exportCut };
 boot();

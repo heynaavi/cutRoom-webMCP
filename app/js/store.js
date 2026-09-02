@@ -11,8 +11,9 @@ const Store = (() => {
     words: [],             // {wi, word, start, end}
     reel: [],              // {id, start, end, text, muted, ghost, why}
     starred: [],           // segment indices
-    candidates: [],        // {id, title, desc, spans:[{start,end,text,why}]}
+    candidates: [],        // {id, title, desc, spans, appliedAt, verdict}
     activeCand: null,
+    notes: [],             // {text, at} — what the human asked for, in their words
     targetSec: 60,
     tab: "transcript",
     query: "",
@@ -25,6 +26,14 @@ const Store = (() => {
 
   let seq = 0;
   const nid = () => `c${++seq}`;
+
+  // Undo exists because an agent can replace the whole reel in one call. A
+  // person needs to be able to take that back without re-doing their work.
+  const undoStack = [];
+  const snapshot = (label) => {
+    undoStack.push({ label, reel: state.reel.map((c) => ({ ...c })), at: Date.now() });
+    if (undoStack.length > 30) undoStack.shift();
+  };
 
   // ── derived ───────────────────────────────────────────────────────────────
   // Playback includes pending clips on purpose: a proposal you cannot hear is
@@ -89,8 +98,20 @@ const Store = (() => {
       emit("load");
     },
 
+    snapshot,
+    canUndo: () => undoStack.length > 0,
+    undo() {
+      const prev = undoStack.pop();
+      if (!prev) return null;
+      state.reel = prev.reel;
+      emit("reel");
+      return prev.label;
+    },
+
     addSpan({ start, end, text, why, ghost = false, at = null }) {
-      const clip = { id: nid(), start, end, text: text || api.textBetween(start, end), muted: false, ghost, why: why || null };
+      snapshot("add clip");
+      const clip = { id: nid(), start, end, text: text || api.textBetween(start, end),
+                     muted: false, ghost, why: why || null, vote: null, note: null };
       if (at == null || at >= state.reel.length) state.reel.push(clip);
       else state.reel.splice(Math.max(0, at), 0, clip);
       emit("reel");
@@ -98,6 +119,7 @@ const Store = (() => {
     },
 
     removeClip(id) {
+      snapshot("remove clip");
       const n = state.reel.length;
       state.reel = state.reel.filter((c) => c.id !== id);
       if (state.reel.length !== n) emit("reel");
@@ -138,7 +160,56 @@ const Store = (() => {
       emit("reel");
     },
 
-    clear() { state.reel = []; state.activeCand = null; emit("reel"); },
+    clear() { snapshot("clear reel"); state.reel = []; state.activeCand = null; emit("reel"); },
+
+    /* Nudge a clip's in/out points. Snaps to word boundaries when we have word
+       timings — cutting mid-word is the difference between a clip and a clip
+       that sounds broken. */
+    trim(id, { headSec = 0, tailSec = 0, snap = true } = {}) {
+      const c = state.reel.find((x) => x.id === id);
+      if (!c) return null;
+      snapshot("trim clip");
+      let start = Math.max(0, c.start + headSec);
+      let end = Math.min(state.source.durationSec, c.end + tailSec);
+      if (end - start < 0.4) return null;                 // refuse to nuke a clip
+      if (snap && state.words.length) {
+        // Seeding a reduce with the target itself makes distance 0 unbeatable,
+        // so nothing ever snapped. Track the best candidate explicitly.
+        const nearest = (t, key) => {
+          let best = null, bestD = Infinity;
+          for (const w of state.words) {
+            const d = Math.abs(w[key] - t);
+            if (d < bestD) { bestD = d; best = w[key]; }
+          }
+          return bestD < 0.45 ? best : t;
+        };
+        start = nearest(start, "start");
+        end = nearest(end, "end");
+      }
+      c.start = +start.toFixed(2);
+      c.end = +end.toFixed(2);
+      c.text = api.textBetween(c.start, c.end);
+      emit("reel");
+      return c;
+    },
+
+    /* A reaction on one clip — the most specific taste signal there is. */
+    react(id, vote, note) {
+      const c = state.reel.find((x) => x.id === id);
+      if (!c) return null;
+      c.vote = c.vote === vote && !note ? null : vote;
+      if (note !== undefined) c.note = note || null;
+      emit("reel");
+      return c;
+    },
+
+    /* What the human asked for, in the words they used. */
+    addNote(text) {
+      state.notes.unshift({ text, at: Date.now() });
+      state.notes = state.notes.slice(0, 12);
+      emit("notes");
+      return text;
+    },
 
     // Replace the whole reel — how an agent proposes a complete cut. Everything
     // lands as a ghost so nothing the human chose is silently overwritten.
@@ -155,9 +226,11 @@ const Store = (() => {
     applyCandidate(id, { asGhost = true } = {}) {
       const c = state.candidates.find((x) => x.id === id);
       if (!c) return null;
+      snapshot(`load “${c.title}”`);
+      c.appliedAt = Date.now();
       state.reel = c.spans.map((s) => ({
         id: nid(), start: s.start, end: s.end, text: s.text,
-        muted: false, ghost: asGhost, why: s.why || null,
+        muted: false, ghost: asGhost, why: s.why || null, vote: null, note: null,
       }));
       state.activeCand = id;
       emit("reel"); emit("cands");
@@ -199,6 +272,7 @@ const Store = (() => {
           index: i, startSec: +c.start.toFixed(2), endSec: +c.end.toFixed(2),
           durationSec: +(c.end - c.start).toFixed(2),
           text: c.text, muted: !!c.muted, pending: !!c.ghost, why: c.why,
+          humanVote: c.vote, humanNote: c.note,
         })),
         durationSec: +reelDur().toFixed(1),
         targetSec: state.targetSec,
@@ -206,6 +280,12 @@ const Store = (() => {
         spreadPct: Math.round(spread() * 100),
         starredCount: state.starred.length,
         pendingCount: state.reel.filter((c) => c.ghost).length,
+        // The important half: what the person has told you, explicitly and
+        // implicitly. Read this before proposing anything new.
+        humanAsked: state.notes.map((n) => n.text),
+        keptCount: state.reel.filter((c) => !c.ghost).length,
+        mutedCount: state.reel.filter((c) => c.muted).length,
+        canUndo: undoStack.length > 0,
       };
     },
   };

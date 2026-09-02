@@ -65,7 +65,7 @@
     },
     {
       name: "getReelState",
-      description: "See the current cut AND what the human has been doing to it — which clips they muted, which are still pending your approval, how far over the time budget they are, and how much of the episode the cut draws on. Read this before proposing changes: muted clips and starred lines are the human telling you their taste.",
+      description: "See the current cut AND every signal the human has given you about it: humanVote and humanNote on individual clips (a thumbs-down is them telling you that specific line is wrong), humanAsked with the steers they clicked in their own words, which clips they muted, what they starred, how far over the 60-second budget they are, and how much of the episode the cut spans. ALWAYS read this before proposing a revision — the whole point is that you are working to their taste, not your own.",
       inputSchema: { type: "object", properties: {} },
       async execute() {
         Store.logTool("getReelState", "");
@@ -199,6 +199,69 @@
       },
     },
     {
+      name: "trimClip",
+      description: "Nudge a clip's in and out points, in seconds. Negative headSec starts EARLIER, positive starts later; negative tailSec ends earlier, positive ends later. This is most of what makes a cut tight — a clip that starts half a word late or runs two seconds past the point is the difference between sharp and slack. Boundaries snap to the nearest word so you never cut mid-syllable. Use small values (0.3-1.5s) and play it back.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          index: { type: "number", description: "Clip position from getReelState (0-based)." },
+          headSec: { type: "number", description: "Move the start. Negative = start earlier." },
+          tailSec: { type: "number", description: "Move the end. Negative = end earlier." },
+        },
+        required: ["index"],
+      },
+      async execute({ index, headSec = 0, tailSec = 0 }) {
+        const c = Store.state.reel[index];
+        if (!c) return note(`No clip at index ${index}.`);
+        Store.logTool("trimClip", `#${index + 1} ${headSec >= 0 ? "+" : ""}${headSec}/${tailSec >= 0 ? "+" : ""}${tailSec}`);
+        const r = Store.trim(c.id, { headSec, tailSec });
+        if (!r) return note("That would leave the clip too short to be a clip.");
+        return note(`Clip ${index + 1} is now ${(r.end - r.start).toFixed(1)}s: “${r.text.slice(0, 90)}”`);
+      },
+    },
+    {
+      name: "getCandidates",
+      description: "See every cut proposed so far in this session, which one is currently loaded on the reel, and how the human reacted to each. Read this before proposing again — repeating an angle they already rejected wastes their time, and knowing what they kept tells you what they actually want.",
+      inputSchema: { type: "object", properties: {} },
+      async execute() {
+        Store.logTool("getCandidates", "");
+        return ok(Store.state.candidates.map((c) => ({
+          title: c.title,
+          description: c.desc,
+          clipCount: c.spans.length,
+          durationSec: +c.spans.reduce((n, s) => n + (s.end - s.start), 0).toFixed(1),
+          loadedOntoReel: Store.state.activeCand === c.id,
+          triedByHuman: !!c.appliedAt,
+        })));
+      },
+    },
+    {
+      name: "exportCut",
+      description: "Hand the finished cut to the human as a file they can take into an editor. 'edl' gives timecoded in/out points, 'json' gives the raw spans and text, 'text' gives a readable script. Offer this once they sound happy — a cut that can't leave the browser is a toy.",
+      inputSchema: {
+        type: "object",
+        properties: { format: { type: "string", enum: ["edl", "json", "text"], description: "Defaults to json." } },
+      },
+      async execute({ format = "json" }) {
+        const l = Store.live();
+        if (!l.length) return note("The reel is empty — nothing to export.");
+        Store.logTool("exportCut", format);
+        const name = UI.exportCut(format);
+        return note(`Exported ${l.length} clips as ${format.toUpperCase()} — the file “${name}” is downloading for them now.`);
+      },
+    },
+    {
+      name: "undoLastChange",
+      description: "Undo the last change to the reel. Use this immediately if the human says a change made it worse — it restores what was there before rather than making them rebuild by hand.",
+      inputSchema: { type: "object", properties: {} },
+      async execute() {
+        const what = Store.undo();
+        if (!what) return note("Nothing to undo.");
+        Store.logTool("undo", what);
+        return note(`Undid “${what}”. The reel is back to what it was.`);
+      },
+    },
+    {
       name: "playReel",
       description: "Play the current cut out loud for the human, so they can judge it. Do this after proposing — a cut nobody hears is worthless — then ask what they'd change.",
       inputSchema: {
@@ -232,6 +295,7 @@
   Promise.all(TOOLS.map((t) => mc.registerTool(t)))
     .then(() => {
       dot.classList.add("live");
+      window.__agentLive = true;      // steer chips become asks, not local edits
       label.textContent = `${TOOLS.length} tools live`;
       dot.title = TOOLS.map((t) => t.name).join(", ");
     })

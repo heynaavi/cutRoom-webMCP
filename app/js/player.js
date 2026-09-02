@@ -71,6 +71,10 @@ const Player = (() => {
     get playing() { return !el.paused; },
     get time() { return el.currentTime; },
     get seqIndex() { return seq ? idx : -1; },
+    /* Which clip is sounding right now, by id. The UI highlights on this —
+       indexing into the sequence lights the wrong card when the sequence is a
+       one-clip preview. */
+    get currentId() { return seq ? (seq[idx]?.id ?? null) : null; },
     get inSequence() { return !!seq; },
 
     get canPlay() { return unlocked; },
@@ -80,7 +84,7 @@ const Player = (() => {
     async playSequence(spans) {
       const list = (spans || [])
         .filter((s) => s && s.end > s.start)
-        .map((s) => ({ start: s.start, end: s.end }));
+        .map((s) => ({ start: s.start, end: s.end, id: s.id ?? null }));
       if (!list.length) return false;
       seq = list; idx = 0;
       el.currentTime = list[0].start;
@@ -91,7 +95,7 @@ const Player = (() => {
     },
 
     /* Play one span, then stop — used for previewing a single line. */
-    playSpan(start, end) { return this.playSequence([{ start, end }]); },
+    playSpan(start, end, id = null) { return this.playSequence([{ start, end, id }]); },
 
     /* Scrub the underlying source, leaving sequence mode. */
     seek(t) {

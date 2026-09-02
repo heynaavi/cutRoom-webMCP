@@ -141,12 +141,17 @@
 
       <section class="reel">
         <div class="reel-head">
-          <span class="reel-title">The reel</span>
+          <button class="cut-play" id="cutPlay" disabled title="Play the cut end to end (Space)">
+            <span id="cutPlayIcon"></span><span id="cutPlayLabel">Play cut</span>
+          </button>
           <div class="budget">
             <span class="budget-num tnum" id="budgetNum"><b>0s</b> / 60s</span>
             <div class="budget-bar"><div class="budget-fill" id="budgetFill"></div></div>
           </div>
           <span class="spacer"></span>
+          <button class="tbtn" id="keepAllBtn" hidden>Keep all</button>
+          <button class="tbtn" id="undoBtn" disabled title="Undo (⌘Z)">Undo</button>
+          <button class="tbtn" id="exportBtn" disabled title="Download the cut">Export</button>
           <button class="tbtn" id="clearBtn">Clear</button>
         </div>
         <div class="strip" id="strip"></div>
