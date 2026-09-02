@@ -39,8 +39,14 @@ await ev(HELPER);
 
 const out = { chrome: (await j("/json/version")).Browser, url: TARGET };
 
-out.registration = await ev(`({ label: document.getElementById('agentLabel').textContent,
-                                tools: (document.getElementById('agentDot').title||"").split(", ").length })`);
+// Count the registry, not the tooltip. Splitting the dot's title on ", " gave
+// 39 for 33 tools, because the diagnostic line above the names has commas in
+// it too — a metric that disagrees with the page for no reason at all.
+out.registration = await ev(`(async () => ({
+  label: document.getElementById('agentLabel').textContent,
+  registered: (await document.modelContext.getTools()).length,
+  uniqueNames: new Set((await document.modelContext.getTools()).map(t => t.name)).size,
+}))()`);
 
 out.schemas = await ev(`(async () => {
   const t = await document.modelContext.getTools();

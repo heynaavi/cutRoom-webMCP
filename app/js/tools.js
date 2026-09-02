@@ -94,6 +94,11 @@
     ua: navigator.userAgent,
   };
 
+  /* "1 cuts", "0 clip(s)" — small things, but an agent quotes these back to the
+     person verbatim, so they end up in the product's voice. */
+  const plural = (n, one, many = one + "s") => `${n} ${n === 1 ? one : many}`;
+  const secs = (n) => (n >= 0.05 ? `${n.toFixed(1)}s` : "under a tenth of a second");
+
   const ok = (data) => ({ content: [{ type: "text", text: JSON.stringify(data) }] });
   const note = (t) => ({ content: [{ type: "text", text: t }] });
 
@@ -657,7 +662,7 @@
         if (!n) return note("Nothing slack to take out — these clips are already tight.");
         Store.logTool("tightenClip", `${n} cuts`);
         const saved = (before - Store.reelDur()).toFixed(1);
-        return note(`Took out ${n} (${what.slice(0, 6).join(", ")}${what.length > 6 ? "…" : ""}), saving ${saved}s. The cut is now ${Math.round(Store.reelDur())}s. Play it back — closing up audio can occasionally sound clipped.`);
+        return note(`Took out ${plural(n, "stretch", "stretches")} (${what.slice(0, 6).join(", ")}${what.length > 6 ? "…" : ""}), saving ${secs(+saved)}. The cut is now ${Math.round(Store.reelDur())}s. Play it back — closing up audio can occasionally sound clipped.`);
       },
     },
     {
@@ -703,7 +708,7 @@
         Store.logTool("redactPhrase", `“${String(phrase).slice(0, 24)}” ×${hits.length}`);
         let touched = 0;
         for (const h of hits) touched += Store.redact(h.startSec, h.endSec, reason).touched;
-        return note(`Redacted ${hits.length} occurrence${hits.length > 1 ? "s" : ""} of “${phrase}”${reason ? ` (${reason})` : ""}. ${touched ? `${touched} clip(s) in the current cut were affected.` : "None are in the current cut, but it can't be used in a later one either."} The redaction is on the record and shows in the export.`);
+        return note(`Redacted ${hits.length} occurrence${hits.length > 1 ? "s" : ""} of “${phrase}”${reason ? ` (${reason})` : ""}. ${touched ? `${plural(touched, "clip")} in the current cut ${touched === 1 ? "was" : "were"} affected.` : "None are in the current cut, but it can't be used in a later one either."} The redaction is on the record and shows in the export.`);
       },
     },
     {
@@ -718,7 +723,7 @@
       async execute({ fromSec, toSec, reason }) {
         Store.logTool("redactRange", `${Math.round(fromSec)}–${Math.round(toSec)}s`);
         const r = Store.redact(fromSec, toSec, reason);
-        return note(`Marked ${(toSec - fromSec).toFixed(0)}s unusable${reason ? ` (${reason})` : ""}. ${r.touched} clip(s) in the current cut were affected.`);
+        return note(`Marked ${(toSec - fromSec).toFixed(0)}s unusable${reason ? ` (${reason})` : ""}. ${plural(r.touched, "clip")} in the current cut ${r.touched === 1 ? "was" : "were"} affected.`);
       },
     },
     {
@@ -746,7 +751,7 @@
         if (!found.length) return note("Nothing to clean — the cut is already tight.");
         Store.logTool("cleanUpCut", `${found.length} cuts`);
         const saved = (before - Store.reelDur()).toFixed(1);
-        return note(`Made ${found.length} cuts (${[...new Set(found)].slice(0, 6).join("; ")}${found.length > 6 ? "…" : ""}), saving ${saved}s. Now ${Math.round(Store.reelDur())}s. Play it back — closing up audio can occasionally clip a word.`);
+        return note(`Made ${plural(found.length, "cut")} (${[...new Set(found)].slice(0, 6).join("; ")}${found.length > 6 ? "…" : ""}), saving ${secs(+saved)}. Now ${Math.round(Store.reelDur())}s. Play it back — closing up audio can occasionally clip a word.`);
       },
     },
     {
