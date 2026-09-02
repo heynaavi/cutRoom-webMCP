@@ -1,0 +1,39 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:"SG";src:url("../app/fonts/SpaceGrotesk-VariableFont_wght.ttf");font-weight:100 900}
+@font-face{font-family:"DM";src:url("../app/fonts/DMSans-VariableFont_opsz,wght.ttf");font-weight:100 900}
+@font-face{font-family:"JB";src:url("../app/fonts/JetBrainsMono-VariableFont_wght.ttf");font-weight:100 900}
+*{box-sizing:border-box;margin:0}
+body{width:1200px;height:630px;overflow:hidden;background:#e6e0cf;font-family:"DM",system-ui;color:#211f1a;position:relative}
+.grain{position:absolute;inset:0;opacity:.5;background-image:radial-gradient(circle at 1px 1px,rgba(44,42,38,.16) 1px,transparent 0);background-size:5px 5px;mix-blend-mode:multiply}
+.pad{position:relative;padding:62px 72px;height:100%;display:flex;flex-direction:column}
+.top{display:flex;align-items:baseline;gap:14px}
+.mark{font-family:"SG";font-weight:700;font-size:34px;letter-spacing:-.025em}
+.mark em{font-style:normal;color:#c4582f}
+.chip{font-family:"JB";font-size:12px;letter-spacing:.2em;color:#8c8577;border:1px solid rgba(44,42,38,.22);padding:5px 11px;border-radius:100px}
+h1{font-family:"SG";font-weight:600;font-size:82px;line-height:1.02;letter-spacing:-.035em;margin-top:52px;max-width:15ch}
+h1 span{color:#c4582f}
+p{font-size:23px;line-height:1.42;color:#5a574e;margin-top:26px;max-width:44ch}
+.spacer{flex:1}
+.bar{position:relative;height:44px;border-radius:9px;background:#dcd4c0;border:1px solid rgba(44,42,38,.10);overflow:hidden}
+.bar i{position:absolute;top:0;bottom:0;background:#c4582f;border-radius:2px}
+.scale{display:flex;justify-content:space-between;margin-top:12px;font-family:"JB";font-size:14px;color:#8c8577;letter-spacing:.04em}
+.scale b{color:#211f1a;font-weight:500}
+.cap{font-family:"JB";font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:#8c8577;margin-bottom:13px}
+</style></head><body>
+<div class="grain"></div>
+<div class="pad">
+  <div class="top"><span class="mark">Cut<em>room</em></span><span class="chip">WEBMCP</span></div>
+  <h1>Find the short <span>inside the hour.</span></h1>
+  <p>An agent reads 500 transcript lines, proposes a cut, and plays it back — while you keep the taste.</p>
+  <div class="spacer"></div>
+  <div class="cap">Six lines, drawn from six places</div>
+  <div class="bar" id="bar"></div>
+  <div class="scale"><span>0:00</span><span><b>38s</b> in 6 clips · across 46% of the episode</span><span>38:29</span></div>
+</div>
+<script>
+// the real picks from the demo cut
+const D=2310, picks=[[320.5,327.9],[458.3,466.5],[953.3,959.1],[1051.1,1057],[1126.2,1132.6],[1373.4,1377.6]];
+document.getElementById('bar').innerHTML = picks.map(([a,b])=>
+  `<i style="left:${(a/D*100).toFixed(2)}%;width:${Math.max(0.7,(b-a)/D*100).toFixed(2)}%"></i>`).join('');
+</script>
+</body></html>

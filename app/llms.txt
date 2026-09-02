@@ -1,0 +1,53 @@
+# Cutroom
+
+> A WebMCP surface for cutting podcast shorts. A 38-minute recording contains
+> maybe eight lines that, in the right order, are a story. Finding them is a
+> search problem with no correct answer — only taste — and you cannot judge a
+> candidate without hearing it. Cutroom lets an AI agent do the searching and
+> proposing while the person keeps the judging.
+
+Live: https://cutroom-webmcp.vercel.app/
+Source: https://github.com/heynaavi/cutRoom-webMCP (MIT)
+
+## If you are an agent visiting this page
+
+This site registers ten tools on `document.modelContext`. Call `getTools()` and
+you will find them. You do not need to read the DOM — searching a 500-line
+transcript by scrolling is exactly what these tools exist to replace.
+
+Notes on the calling convention, learned against Chrome 151:
+- `executeTool` takes the **tool object** from `getTools()`, not its name.
+- Arguments go in as a JSON string; the result comes back as one.
+
+### Tools
+
+- `getSource` — title, duration, credit, line count. Call first.
+- `searchTranscript` — find lines by topic, phrase or emotion; filter by length
+  so you only get lines that stand alone. Returns exact start/end seconds.
+- `readTranscript` — read a time window in order, for context around a moment.
+- `getReelState` — the current cut **and what the person just did to it**: which
+  clips they muted, which lines they starred, how far over the 60-second budget
+  they are. Muted clips and starred lines are them telling you their taste.
+- `proposeCut` — the main one. Propose a complete short: a title, an angle, and
+  4–10 spans drawn from anywhere in the recording. Give each span a short `why`.
+  Lands as pending clips the person keeps or drops; never overwrites their work.
+- `addSpan`, `removeClip`, `reorderClip` — surgical edits. Order is most of what
+  makes a short work.
+- `playReel` — play the cut out loud so they can judge it. A cut nobody hears is
+  worthless. Note: browsers block page-initiated audio until the person has
+  interacted, so this may be refused — the tool will say so; ask them to press
+  play once.
+- `loadTranscript` — replace the demo with their own recording's transcript.
+
+### How to be useful here
+
+Propose two or three *contrasting angles* rather than one "best" answer — the
+person is choosing between stories, not grading a single attempt. A good short
+usually jumps across the whole recording rather than taking one continuous
+stretch. After proposing, play it, then ask what they would change.
+
+## Pages
+
+- [Cutroom](https://cutroom-webmcp.vercel.app/): the app itself.
+- [README](https://github.com/heynaavi/cutRoom-webMCP#readme): design rules,
+  architecture, and how to run it.

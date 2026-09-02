@@ -2,6 +2,8 @@
 
 **Find the short inside the hour — with an agent that has taste, not just hands.**
 
+**Live: <https://cutroom-webmcp.vercel.app/>**
+
 A 38-minute podcast contains maybe eight lines that, in the right order, are a
 story. Finding them is a search problem with no correct answer — only taste —
 and you cannot judge a candidate without *hearing* it.
@@ -77,7 +79,7 @@ bin/try.sh
 
 That starts the server and opens Chrome with `--enable-features=WebMCP`. The
 pill top-right should read **"10 tools live"** — that's registration succeeding.
-Point it anywhere with `bin/try.sh https://your-deploy.vercel.app`.
+Point it anywhere with `bin/try.sh https://cutroom-webmcp.vercel.app`.
 
 To prove the tools genuinely run through `document.modelContext` rather than
 just registering:

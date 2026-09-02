@@ -3,8 +3,92 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cutroom — find the short inside the hour</title>
-<meta name="description" content="A WebMCP surface for cutting podcast shorts. Humans bring the taste; agents bring the reach." />
+<title>Cutroom — find the short inside the hour | WebMCP podcast editor</title>
+<meta name="description" content="Cutroom is a WebMCP-enabled web app for cutting podcast shorts. It exposes its editing tools to AI agents through document.modelContext, so an agent can search a 38-minute transcript, propose a complete cut from non-contiguous spans, reorder clips, and play the result out loud — while the person keeps the taste decisions." />
+<link rel="canonical" href="https://cutroom-webmcp.vercel.app/" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+<meta name="author" content="Cutroom" />
+<meta name="keywords" content="WebMCP, document.modelContext, agent-ready website, podcast shorts, transcript editor, AI video editing, Model Context Protocol, browser agent tools, podcast clip finder, agentic web" />
+<meta name="theme-color" content="#e6e0cf" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0f0e0c" media="(prefers-color-scheme: dark)" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Cutroom" />
+<meta property="og:url" content="https://cutroom-webmcp.vercel.app/" />
+<meta property="og:title" content="Cutroom — find the short inside the hour" />
+<meta property="og:description" content="An agent reads 500 transcript lines, proposes a cut, and plays it back — while you keep the taste. A WebMCP surface for cutting podcast shorts." />
+<meta property="og:image" content="https://cutroom-webmcp.vercel.app/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Cutroom — a timeline of a 38-minute episode with six short clips marked across it, totalling 38 seconds." />
+<meta property="og:locale" content="en_GB" />
+
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Cutroom — find the short inside the hour" />
+<meta name="twitter:description" content="An agent reads 500 transcript lines, proposes a cut, and plays it back — while you keep the taste." />
+<meta name="twitter:image" content="https://cutroom-webmcp.vercel.app/og.png" />
+
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="preload" as="fetch" href="data/transcript.json" crossorigin />
+
+<!-- Structured data: what this is, and what an agent can do here. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "@id": "https://cutroom-webmcp.vercel.app/#app",
+      "name": "Cutroom",
+      "url": "https://cutroom-webmcp.vercel.app/",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Any (web browser)",
+      "browserRequirements": "Chrome 149+ with WebMCP enabled, or ChatGPT's browser, for agent features. Works standalone in any modern browser.",
+      "description": "A WebMCP surface for cutting podcast shorts. Exposes ten tools through document.modelContext so an AI agent can search a transcript, propose complete cuts from non-contiguous spans, reorder clips, and play the result — while the person keeps the taste decisions.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "license": "https://opensource.org/licenses/MIT",
+      "featureList": [
+        "Search a full transcript by topic, phrase, or emotion",
+        "Assemble a short from non-contiguous spans anywhere in a recording",
+        "Stitched playback across clips with sub-frame boundaries",
+        "Agent proposals land as pending clips the person keeps or drops",
+        "Visible ledger of every agent tool call",
+        "Load your own media and SRT/VTT transcript entirely client-side"
+      ]
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "codeRepository": "https://github.com/heynaavi/cutRoom-webMCP",
+      "programmingLanguage": "JavaScript",
+      "license": "https://opensource.org/licenses/MIT",
+      "about": { "@id": "https://cutroom-webmcp.vercel.app/#app" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is WebMCP?",
+          "acceptedAnswer": { "@type": "Answer", "text": "WebMCP is a proposed web standard that lets a website expose structured, callable tools to AI agents through document.modelContext, instead of making the agent scrape the DOM. Cutroom registers ten such tools." }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I use Cutroom with an AI agent?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Open the page in ChatGPT's browser, or in Chrome 149+ with chrome://flags/#enable-webmcp-testing enabled. The indicator in the top bar reads '10 tools live' once registration succeeds. Then ask the agent to find and propose a cut." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I use my own podcast or recording?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Drop an audio or video file plus an SRT, VTT, or JSON transcript onto the page — everything is parsed in the browser and nothing is uploaded. An agent can also supply a transcript directly via the loadTranscript tool." }
+        }
+      ]
+    }
+  ]
+}
+</script>
+
 <link rel="stylesheet" href="css/cutroom.css" />
 </head>
 <body>

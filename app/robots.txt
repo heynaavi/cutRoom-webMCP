@@ -1,0 +1,8 @@
+# Cutroom — https://cutroom-webmcp.vercel.app
+# Agents and crawlers are welcome. The page also exposes callable tools via
+# WebMCP (document.modelContext) — see /llms.txt.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://cutroom-webmcp.vercel.app/sitemap.xml
