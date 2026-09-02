@@ -108,6 +108,18 @@ on top of a word sounds broken however good the line is.
 3. **The agent brings it** — `loadTranscript` lets ChatGPT hand over a
    transcript it already has. The agent *is* the file picker.
 
+## First run
+
+A judge arriving cold sees a podcast editor and no reason to care — the tools
+are the point and they're invisible until something calls one. So the page
+opens by saying what it is, detecting whether the browser can do WebMCP at all
+(and naming the fix if not), and offering to run the loop in front of you.
+
+The demo drives the **real tools** — the same functions an agent invokes, in the
+order an agent would sensibly use them — and it's labelled as scripted. A faked
+agent would be both dishonest and less impressive than the truth, which is that
+it genuinely works. It leaves a real cut on the reel to carry on with.
+
 ## Trying it
 
 No build, no backend, no API keys — it's static files.

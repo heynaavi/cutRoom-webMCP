@@ -693,6 +693,9 @@ async function boot() {
   $("#srcDur").textContent = `${Math.round(data.durationSec / 60)} min · ${data.segments.length} lines`;
   $("#search").placeholder = `Search ${Math.round(data.durationSec / 60)} minutes…`;
   renderReel(); renderChips(); renderList(); renderLog(); paint(0);
+  const tourBtn = $("#tourBtn");
+  if (tourBtn) tourBtn.onclick = () => Tour.show();
+  Tour.boot();
 }
 const UI = { loadSource, toast, paint, exportCut, renderVideo };
 boot();
