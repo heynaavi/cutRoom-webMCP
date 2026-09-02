@@ -193,6 +193,25 @@ const Store = (() => {
       return c;
     },
 
+    /* Trim every clip proportionally until the cut fits the budget. Takes it
+       off the tails, where a second is least likely to be load-bearing. */
+    fitToBudget(target) {
+      const l = live();
+      if (!l.length) return null;
+      const total = dur(l);
+      if (total <= target) return { changed: 0, durationSec: +total.toFixed(1) };
+      snapshot("fit to budget");
+      const over = total - target;
+      let changed = 0;
+      for (const c of l) {
+        const share = ((c.end - c.start) / total) * over;
+        const next = c.end - share;
+        if (next - c.start >= 1.4) { c.end = +next.toFixed(2); c.text = api.textBetween(c.start, c.end); changed++; }
+      }
+      emit("reel");
+      return { changed, durationSec: +dur(live()).toFixed(1) };
+    },
+
     /* What job this clip does in the story. */
     setRole(id, role) {
       const c = state.reel.find((x) => x.id === id);

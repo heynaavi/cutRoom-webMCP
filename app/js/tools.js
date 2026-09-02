@@ -339,6 +339,65 @@
       },
     },
     {
+      name: "tidyClip",
+      description: "Clean up a clip's edges: drop leading and trailing filler words (\"Um, so…\", \"…you know\") and land the cut in a pause. A clip that opens on \"Um\" wastes the three seconds that decide whether anyone watches. Fillers in the middle are left alone — that's just how people talk.",
+      inputSchema: { type: "object", properties: { index: { type: "number" } }, required: ["index"] },
+      async execute({ index }) {
+        const c = Store.state.reel[index];
+        if (!c) return note(`No clip at index ${index}.`);
+        const t = Analysis.tidyEdges(c);
+        if (!t) return note(`Clip ${index + 1}'s edges are already clean.`);
+        Store.logTool("tidyClip", `#${index + 1}`);
+        Store.trim(c.id, { headSec: t.start - c.start, tailSec: t.end - c.end, snap: false });
+        return note(`Dropped “${t.dropped.join(" ")}” from clip ${index + 1}. Now: “${Store.state.reel[index].text.slice(0, 80)}”`);
+      },
+    },
+    {
+      name: "fitToBudget",
+      description: "Trim the whole cut down to a target length, taking the time off clip tails in proportion. Use it when checkFlow says you're over — but play it back afterwards, because proportional trimming is blunt and may clip a line you cared about.",
+      inputSchema: {
+        type: "object",
+        properties: { targetSec: { type: "number", description: "Target length. Defaults to the reel's 60s target." } },
+      },
+      async execute({ targetSec }) {
+        const t = targetSec || Store.state.targetSec;
+        const r = Store.fitToBudget(t);
+        if (!r) return note("The reel is empty.");
+        Store.logTool("fitToBudget", `${t}s`);
+        if (!r.changed) return note(`Already inside budget at ${r.durationSec}s.`);
+        return note(`Trimmed ${r.changed} clips to ${r.durationSec}s. Play it back — proportional trimming is blunt.`);
+      },
+    },
+    {
+      name: "playCandidate",
+      description: "Play a previously proposed cut WITHOUT loading it onto the reel, so the human can compare two angles back to back without losing the one they're working on. Use it when they ask 'what did the other one sound like?'.",
+      inputSchema: {
+        type: "object",
+        properties: { title: { type: "string", description: "Title of the candidate, from getCandidates." } },
+        required: ["title"],
+      },
+      async execute({ title }) {
+        const c = Store.state.candidates.find((x) => x.title.toLowerCase() === String(title).toLowerCase());
+        if (!c) return note(`No proposed cut called “${title}”. Call getCandidates to see the list.`);
+        Store.logTool("playCandidate", `“${c.title}”`);
+        const started = await Player.playSequence(c.spans.map((s) => ({ start: s.start, end: s.end })));
+        if (!started) return note("The browser blocked playback — ask them to press play once first.");
+        return note(`Playing “${c.title}” without touching the reel. Ask which they prefer.`);
+      },
+    },
+    {
+      name: "renderVideo",
+      description: "Render the cut as an actual vertical video file with burned-in captions and a waveform, and save it to the human's machine. This is the end of the job — everything else produces a decision, this produces something they can post. It records in real time (a 40-second cut takes about 40 seconds and plays out loud while it works), so tell them that before you start, and only do it once they're happy with the cut.",
+      inputSchema: { type: "object", properties: {} },
+      async execute() {
+        if (!Store.live().length) return note("The reel is empty — nothing to render.");
+        Store.logTool("renderVideo", `${Math.round(Store.reelDur())}s`);
+        const r = await UI.renderVideo();
+        if (!r?.ok) return note(`Couldn't render: ${r?.error || "unknown error"}`);
+        return note(`Rendered “${r.name}” — ${r.seconds}s, ${r.mb} MB, 1080×1920 with burned-in captions. It's saved to their downloads.`);
+      },
+    },
+    {
       name: "playReel",
       description: "Play the current cut out loud for the human, so they can judge it. Do this after proposing — a cut nobody hears is worthless — then ask what they'd change.",
       inputSchema: {

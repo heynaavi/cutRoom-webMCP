@@ -59,9 +59,25 @@ that responds to *that* is reading taste, not executing a task.
 | `setClipRole` | hook / setup / turn / payoff / button — the story's shape |
 | `trimClip` | Nudge in/out by fractions of a second, snapped to word boundaries |
 | `getCandidates` | Every angle proposed, and how the human reacted |
+| `renderVideo` | **Renders a real 1080×1920 video** with burned-in captions, in-browser |
 | `exportCut` | EDL / JSON / script, so the cut can leave the browser |
+| `tidyClip` | Drop leading/trailing filler words from a clip |
+| `fitToBudget` | Trim the whole cut to a target length |
+| `playCandidate` | Play an alternative without disturbing the reel |
 | `undoLastChange` | An agent can replace the whole reel in one call |
 | `loadTranscript` | Load *their* recording — the agent supplies the transcript |
+
+## It produces an actual video
+
+Everything upstream produces a decision — these spans, in this order.
+`renderVideo` turns that into a file you can post: canvas draws the audiogram
+frame by frame, MediaRecorder muxes it with the real audio, and a 1080×1920
+`.webm` lands in your downloads. No server, no upload, no queue.
+
+It records in real time, because the audio has to play through the graph to be
+captured — a 40-second cut takes 40 seconds. The UI says so rather than looking
+hung. (One known wrinkle: MediaRecorder writes an odd frame-rate into the WebM
+header, so some upload pipelines may want a remux.)
 
 ## Why the audio matters
 

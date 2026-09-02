@@ -174,5 +174,23 @@ const Analysis = (() => {
     return issues.sort((a, b) => order[a.severity] - order[b.severity]);
   }
 
-  return { energyMoments, breaths, nearestBreath, checkFlow };
+  /* ── tidy ───────────────────────────────────────────────────────────────── */
+  // Fillers only matter at the EDGES of a clip. Mid-sentence "you know" is how
+  // people talk; a clip that opens on "Um, so" wastes the three seconds that
+  // decide whether anyone watches.
+  const FILLER = /^(um|uh|er|ah|hmm|so|and|but|like|okay|ok|yeah|right|well|i mean|you know|sort of|kind of)$/i;
+
+  function tidyEdges(clip) {
+    const ws = Store.state.words.filter((w) => w.start >= clip.start - 0.05 && w.end <= clip.end + 0.05);
+    if (ws.length < 4) return null;
+    const clean = (w) => w.word.replace(/[^a-z']/gi, "").toLowerCase();
+    let a = 0, b = ws.length - 1;
+    while (a < b - 2 && FILLER.test(clean(ws[a]))) a++;
+    while (b > a + 2 && FILLER.test(clean(ws[b]))) b--;
+    if (a === 0 && b === ws.length - 1) return null;
+    return { start: ws[a].start, end: ws[b].end, dropped: [
+      ...ws.slice(0, a).map((w) => w.word), ...ws.slice(b + 1).map((w) => w.word)] };
+  }
+
+  return { energyMoments, breaths, nearestBreath, checkFlow, tidyEdges };
 })();

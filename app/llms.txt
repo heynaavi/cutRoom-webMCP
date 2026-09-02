@@ -53,7 +53,15 @@ Notes on the calling convention, learned against Chrome 151:
   way a short fails.
 - `getCandidates` — every angle proposed so far and how they reacted. Check it
   before proposing again; repeating a rejected angle wastes their time.
-- `exportCut` — hand them the finished cut as EDL, JSON or a readable script.
+- `renderVideo` — **the end of the job.** Renders the cut as a real 1080x1920
+  video with burned-in captions and saves it to their machine. Records in real
+  time (a 40s cut takes ~40s and plays out loud), so warn them first and only
+  do it once they're happy.
+- `exportCut` — EDL, JSON or a readable script, for taking into an editor.
+- `tidyClip` — drop leading/trailing filler words ("Um, so…") from a clip.
+- `fitToBudget` — trim the whole cut to a target length proportionally.
+- `playCandidate` — play a previous proposal WITHOUT loading it, so they can
+  compare two angles without losing the one they're working on.
 - `undoLastChange` — if a change made it worse, take it back rather than making
   them rebuild.
 - `playReel` — play the cut out loud so they can judge it. A cut nobody hears is
@@ -72,7 +80,7 @@ Notes on the calling convention, learned against Chrome 151:
 4. `getReelState` to read their votes, notes and mutes.
 5. `checkFlow` and fix what it finds — `trimClip`, `snapToBreath`, `reorderClip`.
    `undoLastChange` if you overshoot.
-6. `exportCut` when they sound happy.
+6. `renderVideo` when they sound happy — hand them something they can post.
 
 ### How to be useful here
 

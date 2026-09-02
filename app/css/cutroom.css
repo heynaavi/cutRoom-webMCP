@@ -450,3 +450,7 @@ body.dropping::after {
 }
 .issue-detail { font-size:12.5px; line-height:1.45; color:var(--text-2); }
 .issue-fix { font-size:11.5px; line-height:1.4; color:var(--muted); font-style:italic; margin-top:5px; }
+
+.tbtn.render { border-color:var(--accent); color:var(--accent); }
+.tbtn.render:hover:not(:disabled) { background:var(--accent-soft); border-color:var(--accent); }
+.tbtn.render:disabled { opacity:.4; border-color:transparent; color:var(--faint); cursor:default; }

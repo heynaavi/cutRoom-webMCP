@@ -163,6 +163,7 @@ function renderReel() {
   $("#cutPlayIcon").innerHTML = Player.playing ? ICON.pause : ICON.play;
   $("#cutPlayLabel").textContent = Player.playing ? "Stop" : live ? `Play cut · ${Math.round(d)}s` : "Play cut";
   $("#exportBtn").disabled = !live;
+  $("#renderBtn").disabled = !live || Render.busy;
   $("#undoBtn").disabled = !Store.canUndo();
   const ka = $("#keepAllBtn");
   ka.hidden = !ghosts;
@@ -458,6 +459,22 @@ function exportCut(format = "json") {
   return `${slug}-cut.${ext}`;
 }
 
+/* ── render ───────────────────────────────────────────────────────────────── */
+// Real-time by necessity: the audio has to play through the graph to be
+// recorded. Say so, and show the progress, rather than looking hung.
+async function renderVideo() {
+  const btn = $("#renderBtn");
+  if (Render.busy) return;
+  const secs = Math.round(Store.reelDur());
+  btn.disabled = true;
+  toast(`Rendering — plays through once, about ${secs}s`);
+  const r = await Render.run((p) => { btn.textContent = `Rendering ${Math.round(p * 100)}%`; });
+  btn.textContent = "Render video";
+  btn.disabled = !Store.live().length;
+  toast(r.ok ? `Saved ${r.name} — ${r.seconds}s, ${r.mb} MB` : r.error);
+  return r;
+}
+
 /* ── taste chips ──────────────────────────────────────────────────────────── */
 // Each chip is the same operation a connected agent would invoke as a tool.
 // With no agent they still work locally, so the page is useful on its own.
@@ -583,6 +600,7 @@ async function boot() {
   };
   $("#undoBtn").onclick = () => { const w = Store.undo(); toast(w ? `Undid “${w}”` : "Nothing to undo"); };
   $("#exportBtn").onclick = () => exportCut("json");
+  $("#renderBtn").onclick = () => renderVideo();
   $("#keepAllBtn").onclick = () => { const n = Store.keepAllGhosts(); if (n) toast(`Kept ${n} clip${n > 1 ? "s" : ""}`); };
   $("#themeBtn").onclick = () => {
     const dark = document.documentElement.dataset.theme === "dark";
@@ -619,5 +637,5 @@ async function boot() {
   $("#search").placeholder = `Search ${Math.round(data.durationSec / 60)} minutes…`;
   renderReel(); renderChips(); renderList(); renderLog(); paint(0);
 }
-const UI = { loadSource, toast, paint, exportCut };
+const UI = { loadSource, toast, paint, exportCut, renderVideo };
 boot();
