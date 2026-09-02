@@ -21,8 +21,20 @@ if [ "$URL" = "http://localhost:4321" ]; then
   fi
 fi
 
-echo "Chrome $VER · WebMCP enabled · $URL"
-echo "The pill top-right should read \"10 tools live\"."
+cat <<BANNER
+
+  Chrome $VER · WebMCP enabled · $URL
+
+  The pill top-right should read "14 tools live" — that means the page
+  registered its tools on document.modelContext.
+
+  Chrome exposes the API, but Chrome is NOT an agent: nothing will call
+  those tools on its own. To see them actually run:
+
+    bin/verify.sh $URL     drives them over CDP and prints what happened
+    or open the same URL in ChatGPT's browser and ask it for a cut
+
+BANNER
 exec "$CHROME" \
   --user-data-dir="$PROFILE" \
   --enable-features=WebMCP \

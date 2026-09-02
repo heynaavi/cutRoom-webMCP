@@ -286,9 +286,12 @@
     },
   ];
 
+  const empty = document.getElementById("logEmpty");
+
   if (!mc || typeof mc.registerTool !== "function") {
-    label.textContent = "no agent";
-    dot.title = "This browser has no WebMCP support. Open in ChatGPT's browser, or Chrome 149+ with chrome://flags/#enable-webmcp-testing.";
+    label.textContent = "no WebMCP";
+    dot.title = "This browser doesn't expose document.modelContext. Open in ChatGPT's browser, or Chrome 149+ with chrome://flags/#enable-webmcp-testing.";
+    empty.innerHTML = "<b>This browser has no WebMCP.</b> The page still works by hand — everything an agent can do, you can do here. To hand it to an agent, open it in ChatGPT's browser, or Chrome&nbsp;149+ with <code>chrome://flags/#enable-webmcp-testing</code>.";
     return;
   }
 
@@ -298,10 +301,15 @@
       window.__agentLive = true;      // steer chips become asks, not local edits
       label.textContent = `${TOOLS.length} tools live`;
       dot.title = TOOLS.map((t) => t.name).join(", ");
+      empty.innerHTML =
+        `<b>${TOOLS.length} tools registered on this page.</b> Nothing has called one yet — ` +
+        `the browser exposes them, but an agent has to be the thing that uses them. ` +
+        `Ask ChatGPT (or whatever agent you're running here) for a cut, and every call it makes lands in this list.`;
     })
     .catch((err) => {
       label.textContent = "registration failed";
       dot.title = String(err);
+      empty.innerHTML = `<b>Tool registration failed.</b> ${String(err).slice(0, 160)}`;
       console.error("[cutroom] tool registration failed", err);
     });
 })();
