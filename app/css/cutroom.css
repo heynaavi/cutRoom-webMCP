@@ -341,7 +341,9 @@ input { font:inherit; color:inherit; }
   background:var(--accent); border-radius:2px;
 }
 .seg.used { opacity:.44; }
-.seg-ts { font-family:var(--f-mono); font-size:10px; color:var(--faint); flex:none;
+/* --faint measured 3.04:1 here, which is under AA for text this size, and a
+   timestamp is the one thing in the rail you read rather than skim. */
+.seg-ts { font-family:var(--f-mono); font-size:10px; color:var(--muted); flex:none;
           padding-top:2px; width:38px; cursor:pointer; }
 .seg-ts:hover { color:var(--accent); }
 .seg-body { flex:1; min-width:0; }
@@ -708,3 +710,16 @@ body.text-only .cut-play { opacity:.4; cursor:not-allowed; }
 }
 .keys-row span { font-size:13.5px; color:var(--text-2); }
 .keys-hint { margin-top:14px; font-size:12px; color:var(--faint); text-align:center; }
+
+/* ── reduced motion ───────────────────────────────────────────────────────── */
+/* Everything here is decoration on top of state that is already correct — the
+   demo dock still moves between steps, it just arrives instead of travelling.
+   GSAP is told separately, in tour.js, or it would keep animating regardless. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+    scroll-behavior:auto !important;
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Cutroom — find the short inside the hour",
+  "short_name": "Cutroom",
+  "description": "A WebMCP surface for cutting podcast shorts. An agent searches the transcript, listens to the audio, and proposes a cut; you keep the taste.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#e6e0cf",
+  "theme_color": "#e6e0cf",
+  "categories": ["productivity", "multimedia", "utilities"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

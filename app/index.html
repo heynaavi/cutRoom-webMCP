@@ -9,8 +9,22 @@
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
 <meta name="author" content="Cutroom" />
 <meta name="keywords" content="WebMCP, document.modelContext, agent-ready website, podcast shorts, transcript editor, AI video editing, Model Context Protocol, browser agent tools, podcast clip finder, agentic web" />
-<meta name="theme-color" content="#e6e0cf" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#0f0e0c" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" id="themeColor" content="#e6e0cf" />
+
+<!-- Theme is resolved before the stylesheet parses. Reading it in ui.js would
+     be one paint too late: the page would flash paper-white on its way to dark,
+     every reload, which is the sort of thing you only forgive on your own site. -->
+<script>
+(function () {
+  var t;
+  try { t = localStorage.getItem("cutroom.theme"); } catch (e) {}
+  if (t !== "dark" && t !== "light") {
+    t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  document.documentElement.dataset.theme = t;
+  document.documentElement.dataset.themeSource = t; // read by ui.js to label the button
+})();
+</script>
 
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
@@ -31,6 +45,9 @@
 <meta name="twitter:image" content="https://cutroom-webmcp.vercel.app/og.png" />
 
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="icon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 <link rel="preload" as="fetch" href="data/transcript.json" crossorigin />
 
 <!-- Structured data: what this is, and what an agent can do here. -->

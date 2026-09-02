@@ -21,6 +21,14 @@ const ICON = {
   down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M17 3v11l-5 7-1.2-.8a2 2 0 01-.8-2.2L11 14H5.8a2 2 0 01-2-2.5l1.7-6.5a2 2 0 012-1.5H17z"/></svg>',
 };
 
+/* CSS can shorten transitions, but GSAP drives its tweens from JS and would
+   keep animating at full length regardless. Speeding the global timeline lands
+   every tween on its final value almost immediately, without having to litter
+   the call sites with conditionals. */
+if (window.gsap && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+  gsap.globalTimeline.timeScale(24);
+}
+
 let PEAKS = null;
 let toastT = 0;
 let lastPlayGlyph = null;
@@ -282,7 +290,9 @@ function renderList() {
             </div>
             <div class="cand-desc">${esc(c.desc)}</div>
           </div>`).join("")}</div>`
-      : `<div class="empty">No cuts proposed yet.<br/><br/>A connected agent proposes these by reading the transcript.<br/>Without one, <button class="chip" id="starterBtn" style="margin-top:10px">Suggest three cuts</button></div>`;
+      : `<div class="empty">No cuts proposed yet.<br/><br/>A connected agent proposes these by reading the transcript
+           <i>and</i> listening to it.<br/>Without one, the page can still guess from the words alone:
+           <br/><button class="chip" id="starterBtn" style="margin-top:10px">Suggest cuts from the text</button></div>`;
     return;
   }
 
@@ -300,16 +310,6 @@ function renderList() {
   }
 
   const q = S.query.trim().toLowerCase();
-  // Words carry their index so a drag-selection resolves to exact timings.
-  // A transcript line is how the words got grouped, not a unit of meaning.
-  const wordSpans = (seg, query) => {
-    const ws = Store.state.words.filter((w) => w.start >= seg.start - 0.05 && w.end <= seg.end + 0.05);
-    if (!ws.length) return esc(seg.text);
-    return ws.map((w) => {
-      const hit = query && w.word.toLowerCase().includes(query);
-      return `<span class="w" data-wi="${w.wi}">${hit ? `<mark>${esc(w.word)}</mark>` : esc(w.word)}</span>`;
-    }).join(" ");
-  };
   const hi = (t) => {
     if (!q) return esc(t);
     const i = t.toLowerCase().indexOf(q);
@@ -321,13 +321,47 @@ function renderList() {
   list.innerHTML = segs.map((s) => `
     <div class="seg${S.starred.includes(s.i) ? " starred" : ""}${used.has(s.i) ? " used" : ""}${now >= s.start && now < s.end ? " speaking" : ""}" data-seg="${s.i}" tabindex="0" role="button" aria-label="Play from ${ts(s.start)}">
       <span class="seg-ts tnum" data-act="seek">${ts(s.start)}</span>
-      <div class="seg-body"><div class="seg-text">${wordSpans(s, q)}</div></div>
+      <div class="seg-body"><div class="seg-text" data-words="pending">${hi(s.text)}</div></div>
       <div class="seg-acts">
         <button class="cbtn" data-act="preview" title="Hear this line">${ICON.ear}</button>
         <button class="cbtn star" data-act="star" title="Star — taste the agent can read">${S.starred.includes(s.i) ? ICON.starOn : ICON.star}</button>
         <button class="cbtn" data-act="add" title="Add to reel">${ICON.plus}</button>
       </div>
     </div>`).join("") || `<div class="empty">Nothing matches “${esc(S.query)}”.</div>`;
+  observeWords();
+}
+
+/* ── word spans, only where they can be seen ──────────────────────────────── */
+// Every transcript line can resolve to word-level timings, which is what makes
+// a drag-selection an exact in/out. Building all of them up front meant ~13,000
+// spans and a 13k×547 scan of the word list on every render — for 500 lines
+// nobody has scrolled to. Rows are upgraded as they come into view instead;
+// you can only select text you can see, so the feature is unchanged.
+let wordObs = null;
+function upgradeRow(row) {
+  const box = row.querySelector(".seg-text");
+  if (!box || box.dataset.words !== "pending") return;
+  const seg = Store.state.segments[+row.dataset.seg];
+  if (!seg) return;
+  box.dataset.words = "done";
+  const q = Store.state.query.trim().toLowerCase();
+  const ws = Store.state.words.filter((w) => w.start >= seg.start - 0.05 && w.end <= seg.end + 0.05);
+  if (!ws.length) return;                       // no word timings — leave the plain text
+  box.innerHTML = ws.map((w) => {
+    const hit = q && w.word.toLowerCase().includes(q);
+    return `<span class="w" data-wi="${w.wi}">${hit ? `<mark>${esc(w.word)}</mark>` : esc(w.word)}</span>`;
+  }).join(" ");
+}
+function observeWords() {
+  const list = $("#list");
+  const rows = list.querySelectorAll("[data-seg]");
+  if (!rows.length) return;
+  if (!("IntersectionObserver" in window)) { rows.forEach(upgradeRow); return; }
+  wordObs?.disconnect();
+  wordObs = new IntersectionObserver((entries, obs) => {
+    for (const e of entries) if (e.isIntersecting) { upgradeRow(e.target); obs.unobserve(e.target); }
+  }, { root: list, rootMargin: "300px 0px" });
+  rows.forEach((r) => wordObs.observe(r));
 }
 
 function wireRail() {
@@ -338,6 +372,12 @@ function wireRail() {
   });
   $("#search").addEventListener("input", (e) => Store.setQuery(e.target.value));
   $("#list").addEventListener("wheel", () => { userScrolledAt = Date.now(); }, { passive: true });
+  // Belt and braces for the lazy word spans: if a drag starts on a row the
+  // observer hasn't reached yet, upgrade it before the selection exists.
+  $("#list").addEventListener("pointerdown", (e) => {
+    const row = e.target.closest?.("[data-seg]");
+    if (row) upgradeRow(row);
+  }, true);
   $("#list").addEventListener("keydown", (e) => {
     const row = e.target.closest?.("[data-seg]");
     if (!row || (e.key !== "Enter" && e.key !== " ")) return;
@@ -355,7 +395,9 @@ function wireRail() {
     if (e.target.id === "starterBtn") {
       const n = Starters.suggest();
       Store.logTool("suggest", `${n} local cuts`);
-      toast(n ? `${n} cuts — press 1, 2 or 3 to hear them` : "Not enough material to build a cut");
+      toast(n
+        ? `${n} cut${n > 1 ? "s" : ""} — press ${n > 1 ? [...Array(n)].map((_, i) => i + 1).join(" or ") : "1"} to hear ${n > 1 ? "them" : "it"}`
+        : "Not enough material to build a cut");
       return;
     }
     const er = e.target.closest("[data-energy]");
@@ -697,6 +739,24 @@ function wireDrop() {
   });
 }
 
+/* ── theme ────────────────────────────────────────────────────────────────── */
+// The inline script in <head> picks the theme before first paint; this only
+// keeps the choice, the label and the browser chrome in step with it.
+const THEME_BG = { light: "#e6e0cf", dark: "#0f0e0c" };
+function applyTheme(next, persist) {
+  const t = next === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = t;
+  const btn = $("#themeBtn");
+  if (btn) {
+    btn.textContent = t === "dark" ? "Light" : "Dark";
+    btn.setAttribute("aria-label", `Switch to ${t === "dark" ? "light" : "dark"} theme`);
+    btn.setAttribute("aria-pressed", String(t === "dark"));
+  }
+  const meta = $("#themeColor");
+  if (meta) meta.content = THEME_BG[t];
+  if (persist) { try { localStorage.setItem("cutroom.theme", t); } catch { /* private mode */ } }
+}
+
 async function boot() {
   buildWave(); wireReel(); wireRail(); wireChips(); wireKeys(); wireDrop();
 
@@ -714,11 +774,9 @@ async function boot() {
   $("#exportBtn").onclick = () => exportCut("json");
   $("#renderBtn").onclick = () => renderVideo();
   $("#keepAllBtn").onclick = () => { const n = Store.keepAllGhosts(); if (n) toast(`Kept ${n} clip${n > 1 ? "s" : ""}`); };
-  $("#themeBtn").onclick = () => {
-    const dark = document.documentElement.dataset.theme === "dark";
-    document.documentElement.dataset.theme = dark ? "light" : "dark";
-    $("#themeBtn").textContent = dark ? "Dark" : "Light";
-  };
+  applyTheme(document.documentElement.dataset.theme, false);
+  $("#themeBtn").onclick = () =>
+    applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
   $("#scrub").addEventListener("pointerdown", (e) => {
     const r = $("#scrub").getBoundingClientRect();
     const f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
@@ -739,15 +797,6 @@ async function boot() {
   Player.on("playing", (p) => { p ? Wave.start() : Wave.stop(); paint(Player.time); renderReel(); });
   Player.on("clip", () => { renderReel(); paint(Player.time); });
 
-  const data = await fetch("data/transcript.json").then((r) => r.json());
-  Store.load(data);
-  try { PEAKS = await fetch("data/peaks.json").then((r) => r.ok ? r.json() : null); } catch { PEAKS = null; }
-  window.PEAKS = PEAKS;
-
-  $("#srcTitle").textContent = data.title;
-  $("#srcDur").textContent = `${Math.round(data.durationSec / 60)} min · ${data.segments.length} lines`;
-  $("#search").placeholder = `Search ${Math.round(data.durationSec / 60)} minutes…`;
-  renderReel(); renderChips(); renderList(); renderLog(); paint(0);
   const openBtn = $("#openBtn"), filePick = $("#filePick");
   if (openBtn && filePick) {
     openBtn.onclick = () => filePick.click();
@@ -768,7 +817,60 @@ async function boot() {
   $("#keys").onclick = (e) => { if (e.target.id === "keys") $("#keys").classList.remove("on"); };
   const tourBtn = $("#tourBtn");
   if (tourBtn) tourBtn.onclick = () => Tour.show();
+
+  // Everything above works without the demo episode — loading your own material
+  // is the recovery path, so it gets wired before anything can fail.
+  if (!(await loadDemoEpisode())) return;
   Tour.boot();
+}
+
+/* The bundled episode. A CDN hiccup or an offline reload shouldn't leave a blank
+   rail with no explanation — the page still does its whole job on your own
+   files, and it should say so rather than sitting there empty. */
+async function loadDemoEpisode() {
+  try {
+    const r = await fetch("data/transcript.json", { cache: "force-cache" });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    const data = await r.json();
+    if (!data?.segments?.length) throw new Error("transcript is empty");
+    Store.load(data);
+    try { PEAKS = await fetch("data/peaks.json").then((x) => (x.ok ? x.json() : null)); } catch { PEAKS = null; }
+    window.PEAKS = PEAKS;
+    $("#srcTitle").textContent = data.title;
+    $("#srcDur").textContent = `${Math.round(data.durationSec / 60)} min · ${data.segments.length} lines`;
+    $("#search").placeholder = `Search ${Math.round(data.durationSec / 60)} minutes…`;
+    renderReel(); renderChips(); renderList(); renderLog(); paint(0);
+    return true;
+  } catch (err) {
+    showLoadFailure(err);
+    return false;
+  }
+}
+
+function showLoadFailure(err) {
+  $("#srcTitle").textContent = "Couldn't load the demo episode";
+  $("#srcDur").textContent = String(err?.message || err || "network error");
+  $("#playBtn").disabled = true;
+  $("#search").disabled = true;
+  $("#caption").className = "caption idle";
+  $("#caption").innerHTML = `<b>The bundled episode didn't load.</b> Everything else still works —
+    drop a media file and an SRT or VTT transcript anywhere on this page.`;
+  $("#list").innerHTML = `<div class="empty">
+      <b>Couldn't fetch <code>data/transcript.json</code></b><br/>
+      <span class="mono">${esc(err?.message || "network error")}</span><br/><br/>
+      This is the sample episode, not the app. All 33 tools are still registered, and
+      an agent can supply its own transcript with <code>loadTranscript</code>.<br/><br/>
+      <button class="chip" id="retryBtn">Try again</button>
+      <button class="chip" id="ownBtn">Use your own files</button>
+    </div>`;
+  $("#retryBtn").onclick = async () => {
+    $("#list").innerHTML = `<div class="empty">Retrying…</div>`;
+    if (await loadDemoEpisode()) {
+      $("#playBtn").disabled = false; $("#search").disabled = false;
+      toast("Loaded");
+    }
+  };
+  $("#ownBtn").onclick = () => $("#filePick").click();
 }
 const UI = { loadSource, toast, paint, exportCut, renderVideo, renderTextOnly };
 boot();
