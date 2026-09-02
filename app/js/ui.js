@@ -319,7 +319,7 @@ function renderList() {
   speakingSeg = -1;
   const now = Player.time;
   list.innerHTML = segs.map((s) => `
-    <div class="seg${S.starred.includes(s.i) ? " starred" : ""}${used.has(s.i) ? " used" : ""}${now >= s.start && now < s.end ? " speaking" : ""}" data-seg="${s.i}">
+    <div class="seg${S.starred.includes(s.i) ? " starred" : ""}${used.has(s.i) ? " used" : ""}${now >= s.start && now < s.end ? " speaking" : ""}" data-seg="${s.i}" tabindex="0" role="button" aria-label="Play from ${ts(s.start)}">
       <span class="seg-ts tnum" data-act="seek">${ts(s.start)}</span>
       <div class="seg-body"><div class="seg-text">${wordSpans(s, q)}</div></div>
       <div class="seg-acts">
@@ -338,6 +338,12 @@ function wireRail() {
   });
   $("#search").addEventListener("input", (e) => Store.setQuery(e.target.value));
   $("#list").addEventListener("wheel", () => { userScrolledAt = Date.now(); }, { passive: true });
+  $("#list").addEventListener("keydown", (e) => {
+    const row = e.target.closest?.("[data-seg]");
+    if (!row || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    row.click();
+  });
   document.addEventListener("selectionchange", () => {
     clearTimeout(window.__selT);
     window.__selT = setTimeout(onWordSelection, 140);
@@ -587,7 +593,11 @@ function wireChips() {
 /* ── keyboard ─────────────────────────────────────────────────────────────── */
 function wireKeys() {
   document.addEventListener("keydown", (e) => {
-    if (e.target.matches("input,textarea")) { if (e.key === "Escape") e.target.blur(); return; }
+    // e.target isn't always an Element — a keydown with focus on the document
+    // has no .matches, and the throw took every shortcut down with it.
+    const t = e.target;
+    const typing = t instanceof HTMLElement && t.matches("input,textarea");
+    if (typing) { if (e.key === "Escape") t.blur(); return; }
     if (e.key === " ") {
       e.preventDefault();
       if (Player.playing) Player.pause();
@@ -599,6 +609,12 @@ function wireKeys() {
       if (c) { Store.applyCandidate(c.id); Player.playSequence(Store.playSpans()); toast(`“${c.title}”`); }
     }
     if (e.key.toLowerCase() === "k") { const n = Store.keepAllGhosts(); if (n) toast(`Kept ${n} proposed clip${n > 1 ? "s" : ""}`); }
+    if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
+      e.preventDefault();
+      $("#keys").classList.toggle("on");
+      return;
+    }
+    if (e.key === "Escape") $("#keys").classList.remove("on");
     if (e.key.toLowerCase() === "z" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       const w = Store.undo();
@@ -749,6 +765,7 @@ async function boot() {
       filePick.value = "";
     };
   }
+  $("#keys").onclick = (e) => { if (e.target.id === "keys") $("#keys").classList.remove("on"); };
   const tourBtn = $("#tourBtn");
   if (tourBtn) tourBtn.onclick = () => Tour.show();
   Tour.boot();
