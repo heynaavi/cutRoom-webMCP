@@ -52,6 +52,38 @@ and dead air from the *middle* of a clip and closes the audio up behind them.
 `getCutManifest` returns every span to a hundredth of a second, plus a ffmpeg
 command — we decide what to cut; ffmpeg does the cutting.
 
+## Why WebMCP fits this use case
+
+The sponsor demos are transactional — storefronts, reservations, returns. There
+the agent *completes* a task you'd rather not do by hand.
+
+Cutting a short isn't that shape. There is no correct answer to find, only a
+judgement to make, and the person has to hear it to make it. So the work splits
+cleanly along the one axis that matters:
+
+| The agent does | The human does |
+|---|---|
+| read 547 lines in a second | decide which eight are a story |
+| hear where the voice lifts across 38 minutes | decide whether that's the right kind of energy |
+| trim to word boundaries, cut on breath | say "that's too long" after hearing it |
+
+Neither half works alone. That's why this is a WebMCP app rather than a chatbot
+with an API: **the tools have to live where the person is listening.**
+
+## How humans and agents collaborate here
+
+The brief asks for people and agents *creating together*, so the collaboration
+runs in both directions rather than one:
+
+- **Agent → human.** Proposals land as *pending* clips on the reel, dashed, each
+  with a one-line reason. Nothing is committed. The human plays them and decides.
+- **Human → agent.** A thumbs-down on a clip, or a steer chip ("Tighter",
+  "Colder open"), is recorded and returned through `getReelState` as
+  `humanVote`, `humanNote`, `humanAsked`. The agent revises to their taste
+  rather than its own.
+- **Both → visible.** Every tool call appears in a live ledger. The human always
+  knows what the agent just did, and can undo it.
+
 ## Why this needs WebMCP
 
 An agent driving this page through the DOM would scroll 547 lines and guess.
