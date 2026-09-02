@@ -20,22 +20,37 @@
   // diagnosed from a screenshot rather than guessed at.
   const surfaces = [];
   const seen = new Set();
+  // Walk own properties AND the prototype chain, stopping before
+  // Object.prototype. Chrome's modelContext is a class instance (methods on a
+  // prototype); another runtime may hand back a plain object (methods as own
+  // properties). Looking only at the prototype found Object.prototype on the
+  // latter and reported hasOwnProperty/toString/valueOf as its "API" —
+  // useless, and it hid what the runtime actually offers.
+  const methodsOf = (obj) => {
+    const out = new Set();
+    for (let o = obj; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
+      for (const k of Object.getOwnPropertyNames(o)) {
+        if (k === "constructor") continue;
+        let v; try { v = obj[k]; } catch { continue; }   // getters can throw
+        if (typeof v === "function") out.add(k);
+      }
+    }
+    return [...out];
+  };
   for (const [where, obj] of [["document", globalThis.document?.modelContext], ["navigator", globalThis.navigator?.modelContext]]) {
     if (!obj || seen.has(obj)) continue;
     seen.add(obj);
-    const proto = Object.getPrototypeOf(obj) || {};
-    const methods = Object.getOwnPropertyNames(proto).filter((k) => k !== "constructor" && typeof obj[k] === "function");
-    surfaces.push({ where, obj, methods });
+    surfaces.push({ where, obj, methods: methodsOf(obj), kind: Object.getPrototypeOf(obj) === Object.prototype ? "plain object" : (obj.constructor?.name || "unknown") });
   }
   const mc = surfaces[0]?.obj;
   const diag = surfaces.length
-    ? surfaces.map((s) => `${s.where}.modelContext{${s.methods.join(",")}}`).join(" · ")
+    ? surfaces.map((s) => `${s.where}.modelContext [${s.kind}] {${s.methods.join(", ")}}`).join(" · ")
     : "no modelContext on document or navigator";
   // navigator.modelContextTesting.listTools() is the console diagnostic some
   // runtimes expose; capture it too when present.
   const testing = globalThis.navigator?.modelContextTesting;
   globalThis.__cutroomDiag = {
-    surfaces: surfaces.map((s) => ({ where: s.where, methods: s.methods })),
+    surfaces: surfaces.map((s) => ({ where: s.where, kind: s.kind, methods: s.methods })),
     testingApi: testing ? Object.getOwnPropertyNames(Object.getPrototypeOf(testing) || {}).filter((k) => k !== "constructor") : null,
     registeredAt: "head",
     ua: navigator.userAgent,
