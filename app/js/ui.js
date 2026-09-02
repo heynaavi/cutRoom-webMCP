@@ -59,7 +59,7 @@ function renderCaption(sec) {
 
 function buildWave() {
   const el = $("#wave");
-  el.innerHTML = Array.from({ length: 72 }, () => "<i></i>").join("");
+  el.innerHTML = Array.from({ length: 132 }, () => "<i></i>").join("");
 }
 function renderWave(sec) {
   const bars = $("#wave").children;

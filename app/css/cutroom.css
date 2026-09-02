@@ -24,8 +24,7 @@
   --f-body:"DM Sans QE","DM Sans",system-ui,sans-serif;
   --f-mono:"JetBrains Mono QE","JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
   --r-sm:6px; --r:10px; --r-lg:14px; --r-xl:20px;
-  --measure:660px;
-  --topbar:56px; --rail:clamp(440px,34vw,680px); --chips:52px;
+  --topbar:56px; --rail:clamp(440px,38vw,760px); --chips:52px;
 }
 [data-theme="dark"] {
   --bg:#0f0e0c; --surface:#171613; --surface-2:#1f1d19; --raised:#232019;
@@ -111,14 +110,14 @@ input { font:inherit; color:inherit; }
 }
 /* The preview is the shape of the thing you're making — a 4:5 social frame,
    not a wide box. Seeing the real aspect while you cut is the point. */
-.stage-frame { flex:1; min-height:0; max-height:430px; display:flex; justify-content:center; width:100%; }
+.stage-frame { flex:1; min-height:0; max-height:392px; display:flex; width:100%; }
 .stage-card {
-  position:relative; height:100%; aspect-ratio:4/5; max-width:100%; flex:none;
+  position:relative; height:100%; width:100%; flex:1; min-width:0;
   border-radius:var(--r-lg);
   background:linear-gradient(158deg,var(--raised),var(--surface-2));
   border:1px solid var(--hairline); box-shadow:var(--shadow-2);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:30px 32px 74px; overflow:hidden;
+  padding:30px 40px 84px; overflow:hidden;
 }
 /* subtle paper grain so the flat card doesn't read as a placeholder */
 .stage-card::after {
@@ -140,9 +139,9 @@ input { font:inherit; color:inherit; }
 .stage-clipno.on { opacity:1; }
 
 .caption {
-  position:relative; z-index:1; text-align:center; max-width:19ch;
+  position:relative; z-index:1; text-align:center; max-width:26ch;
   font-family:var(--f-display); font-weight:600; letter-spacing:-.022em;
-  font-size:clamp(19px,2.2vh,32px); line-height:1.22; color:var(--text);
+  font-size:clamp(20px,2.5vh,34px); line-height:1.22; color:var(--text);
   text-wrap:balance;
 }
 .caption .w { opacity:.26; transition:opacity .14s ease, color .14s ease; }
@@ -154,13 +153,13 @@ input { font:inherit; color:inherit; }
 }
 
 /* waveform */
-.wave { position:absolute; left:0; right:0; bottom:0; height:58px; display:flex;
-        align-items:flex-end; gap:2px; padding:0 14px 12px; opacity:.5; z-index:1; }
-.wave i { flex:1; background:var(--text); border-radius:1px; min-height:2px; transition:height .09s linear, background .2s; }
+.wave { position:absolute; left:0; right:0; bottom:0; height:64px; display:flex;
+        align-items:flex-end; gap:2px; padding:0; opacity:.5; z-index:1; }
+.wave i { flex:1; background:var(--text); border-radius:1px 1px 0 0; min-height:3px; transition:height .09s linear, background .2s; }
 .wave i.hot { background:var(--accent); }
 
 /* ── transport ────────────────────────────────────────────────────────────── */
-.transport { display:flex; align-items:center; gap:14px; width:100%; max-width:var(--measure); padding-top:18px; }
+.transport { display:flex; align-items:center; gap:14px; width:100%; padding-top:18px; }
 .play-btn {
   width:42px; height:42px; border-radius:50%; background:var(--accent); color:var(--on-accent);
   display:grid; place-items:center; box-shadow:var(--shadow-1); flex:none;
@@ -181,7 +180,7 @@ input { font:inherit; color:inherit; }
 }
 
 /* ── provenance bar ───────────────────────────────────────────────────────── */
-.prov { width:100%; max-width:var(--measure); padding:16px 0 2px; }
+.prov { width:100%; padding:16px 0 2px; }
 .prov-head {
   display:flex; align-items:baseline; gap:8px; margin-bottom:7px;
   font-family:var(--f-mono); font-size:9.5px; letter-spacing:.14em;
@@ -361,7 +360,7 @@ input { font:inherit; color:inherit; }
 .toast.on { opacity:1; transform:translate(-50%,0); }
 
 @media (max-width:1100px) {
-  :root { --rail:min(380px,38vw); --measure:100%; }
+  :root { --rail:min(380px,40vw); }
   .clip { flex-basis:172px; }
 }
 
