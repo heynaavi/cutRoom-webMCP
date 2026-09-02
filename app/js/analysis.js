@@ -248,20 +248,37 @@ const Analysis = (() => {
     const cuts = [];
     const ws = Store.state.words.filter((w) => w.start >= clip.start && w.end <= clip.end);
 
-    for (const w of ws) {
-      if (MID_FILLER.test(w.word.replace(/[^a-z]/gi, ""))) {
-        cuts.push({ start: Math.max(clip.start, w.start - 0.04), end: Math.min(clip.end, w.end + 0.06), why: w.word });
-      }
-    }
+    // Padding into the surrounding silence keeps the join from clicking — but
+    // it has to stop at the neighbouring words, or it eats them. An earlier
+    // version turned "uh, nobody would have been" into "would have been".
+    ws.forEach((w, i) => {
+      if (!MID_FILLER.test(w.word.replace(/[^a-z]/gi, ""))) return;
+      const prevEnd = i > 0 ? ws[i - 1].end : clip.start;
+      const nextStart = i < ws.length - 1 ? ws[i + 1].start : clip.end;
+      cuts.push({
+        start: +Math.max(clip.start, prevEnd, w.start - 0.04).toFixed(2),
+        end: +Math.min(clip.end, nextStart, w.end + 0.06).toFixed(2),
+        why: w.word,
+      });
+    });
 
     // Dead air between words, trimmed back to a natural beat rather than removed
     // outright — cutting every pause makes people sound like machines.
+    //
+    // The loudness floor is a global percentile, so quiet SPEECH can fall under
+    // it: an earlier version cut "their office" out of a line because that
+    // passage was softly spoken. Word timings settle it exactly — a real pause
+    // has no word in it. Never trust the envelope alone here.
+    const overlapsWord = (a, b) =>
+      Store.state.words.some((w) => w.end > a + 0.02 && w.start < b - 0.02);
+
     for (const b of breaths()) {
       if (b.start <= clip.start + 0.15 || b.end >= clip.end - 0.15) continue;
       const len = b.end - b.start;
       if (len <= keepSec + 0.22) continue;
-      cuts.push({ start: +(b.start + keepSec / 2).toFixed(2), end: +(b.end - keepSec / 2).toFixed(2),
-                  why: `${len.toFixed(1)}s pause` });
+      const a0 = +(b.start + keepSec / 2).toFixed(2), a1 = +(b.end - keepSec / 2).toFixed(2);
+      if (a1 <= a0 || overlapsWord(a0, a1)) continue;
+      cuts.push({ start: a0, end: a1, why: `${len.toFixed(1)}s pause` });
     }
     return cuts.sort((a, b) => a.start - b.start);
   }
