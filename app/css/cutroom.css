@@ -105,13 +105,12 @@ input { font:inherit; color:inherit; }
 
 /* ── stage (audiogram) ────────────────────────────────────────────────────── */
 .stage {
-  position:relative; display:flex; align-items:center; gap:28px; min-width:0;
-  padding:20px 26px 18px; overflow:hidden;
+  position:relative; display:flex; flex-direction:column; align-items:center;
+  min-width:0; padding:20px 26px 4px; overflow:hidden;
 }
 /* The preview is the shape of the thing you're making — a 4:5 social frame,
    not a wide box. Seeing the real aspect while you cut is the point. */
-.stage-frame { height:min(100%,392px); flex:none; }
-.stage-side { flex:1; min-width:0; display:flex; flex-direction:column; gap:18px; }
+.stage-frame { flex:1; min-height:0; max-height:430px; display:flex; justify-content:center; width:100%; }
 .stage-card {
   position:relative; height:100%; aspect-ratio:4/5; max-width:100%; flex:none;
   border-radius:var(--r-lg);
@@ -160,7 +159,7 @@ input { font:inherit; color:inherit; }
 .wave i.hot { background:var(--accent); }
 
 /* ── transport ────────────────────────────────────────────────────────────── */
-.transport { display:flex; align-items:center; gap:14px; }
+.transport { display:flex; align-items:center; gap:14px; width:100%; padding-top:18px; }
 .play-btn {
   width:42px; height:42px; border-radius:50%; background:var(--accent); color:var(--on-accent);
   display:grid; place-items:center; box-shadow:var(--shadow-1); flex:none;
@@ -181,7 +180,7 @@ input { font:inherit; color:inherit; }
 }
 
 /* ── provenance bar ───────────────────────────────────────────────────────── */
-.prov { }
+.prov { width:100%; padding:16px 0 2px; }
 .prov-head {
   display:flex; align-items:baseline; gap:8px; margin-bottom:7px;
   font-family:var(--f-mono); font-size:9.5px; letter-spacing:.14em;
