@@ -42,38 +42,46 @@ const Tour = (() => {
   /* Each step: what it says, which tool it stands for, where to look, how long
      to dwell, and the state it wants. `apply` must be safe to re-run. */
   const STEPS = [
-    { tool: "listCapabilities", ms: 3600, focus: "#logBody", icon: "compass", title: "Gets its bearings",
+    { tool: "listCapabilities", args: "{}", ms: 3400, focus: "#logBody", icon: "compass", title: "Gets its bearings",
+      got: "33 tools · 11 read the audio, not the transcript",
       say: "An agent arrives cold and asks what's here.",
       apply() { Store.setTab("transcript"); Store.logTool("listCapabilities", ""); } },
 
-    { tool: "findEnergyMoments", ms: 5600, focus: "#list", icon: "ear", title: "Listens",
+    { tool: "findEnergyMoments", args: '{ limit: 18 }', ms: 5200, focus: "#list", icon: "ear", title: "Listens",
+      got: "18 moments · strongest: “isn't that amazing that we did that?” @29:38",
       say: "Reads the waveform, not the words — where the voice lifts. No text search can find this.",
       apply() { Store.logTool("findEnergyMoments", "top 18"); Store.setTab("energy"); } },
 
-    { tool: "searchTranscript", ms: 4400, focus: "#list", icon: "search", title: "Reads",
+    { tool: "searchTranscript", args: '{ query: "the call came" }', ms: 4200, focus: "#list", icon: "search", title: "Reads",
+      got: "6 lines · best at 18:42",
       say: "Then searches the text for the story. The best clips sit where both agree.",
       apply() { Store.setTab("transcript"); Store.logTool("searchTranscript", "“the call came”"); Store.setQuery("the call came"); },
       undo() { Store.setQuery(""); } },
 
-    { tool: "proposeCut", ms: 5600, focus: ".strip", icon: "cards", title: "Proposes",
+    { tool: "proposeCut", args: '{ title: "Electrician to astronaut", spans: [5] }', ms: 5400, focus: ".strip", icon: "cards", title: "Proposes",
+      got: "5 pending clips · 31s · drawn across 46% of the episode",
       say: "Five lines, five different places in the hour. Dashed means proposal, not decision.",
       apply() { Store.setQuery(""); buildCut(true); Store.setTab("cands"); } },
 
-    { tool: "playReel", ms: 9000, focus: ".stage", icon: "play", title: "Plays it",
+    { tool: "playReel", args: "{}", ms: 9000, focus: ".stage", icon: "play", title: "Plays it",
+      got: "playing 5 clips…",
       say: "You hear it. That's the only way to judge a cut.",
       apply() { Store.logTool("playReel", `${Store.live().length} clips`); },
       async live() { await Player.playSequence(Store.playSpans()); },
       leave() { Player.stop(); } },
 
-    { tool: "checkFlow", ms: 5400, focus: "#list", icon: "check", title: "Checks itself",
+    { tool: "checkFlow", args: "{}", ms: 5000, focus: "#list", icon: "check", title: "Checks itself",
+      got: "3 issues · 1 high: the hook opens mid-thought",
       say: "Weak hook. Dangling pronoun. Join that cuts in mid-flow.",
       apply() { Store.setTab("notes"); Store.logTool("checkFlow", ""); } },
 
-    { tool: "cleanUpCut", ms: 5800, focus: ".strip", icon: "broom", title: "Cleans up",
+    { tool: "cleanUpCut", args: "{}", ms: 5400, focus: ".strip", icon: "broom", title: "Cleans up",
+      got: "5 cuts · 1.6s saved · no real words lost",
       say: "Hesitations and dead air out of the middle. Nothing actually said is lost.",
       apply() { const n = cleanCut(); Store.logTool("cleanUpCut", `${n} cuts`); } },
 
-    { tool: "getCutManifest", ms: 5600, focus: ".reel", icon: "doc", title: "Hands it over",
+    { tool: "getCutManifest", args: "{}", ms: 5600, focus: ".reel", icon: "doc", title: "Hands it over",
+      got: "9 spans · exact in/out · ffmpeg command",
       say: "Every span to a hundredth of a second, plus an ffmpeg command.",
       apply() { Store.setTab("cands"); Store.logTool("getCutManifest", "json"); } },
   ];
@@ -162,16 +170,45 @@ const Tour = (() => {
   }
 
   /* ── chrome ─────────────────────────────────────────────────────────────── */
+  // What the demo shows being asked. The clipboard prompt below is separate
+  // and longer — this one is what reads well on screen.
+  const DEMO_PROMPT = "Find me 60 seconds on how he went from electrician to astronaut. Propose an angle, play it, then clean it up and give me the timestamps.";
+
   function paintDock() {
     if (!dock) return;
-    if (window.gsap) gsap.fromTo(dock.querySelector(".td-body"), { y: 6, opacity: .35 }, { y: 0, opacity: 1, duration: .38, ease: "power2.out", overwrite: "auto" });
-    const s = STEPS[at], last = at === STEPS.length - 1 && !playing && dock.classList.contains("done");
-    dock.querySelector("#tIcon").innerHTML = last ? STEP_ICON.check : (STEP_ICON[s.icon] || "");
-    dock.querySelector("#tTitle").textContent = last ? "That's the loop" : s.title;
-    dock.querySelector("#tTool").textContent = last ? "" : s.tool;
-    dock.querySelector("#tSay").textContent = last
-      ? "Every step was a real tool call. An agent makes those choices itself. The cut is still on the reel — press Space."
-      : s.say;
+    const done = at === STEPS.length - 1 && dock.classList.contains("done");
+
+    // the prompt types itself in on the first step, then stays
+    const p = dock.querySelector("#tPrompt");
+    if (!p.dataset.typed) {
+      p.dataset.typed = "1";
+      let i = 0;
+      const tick = () => { p.textContent = DEMO_PROMPT.slice(0, ++i); if (i < DEMO_PROMPT.length) setTimeout(tick, 14); };
+      tick();
+    }
+
+    // the calls it has made so far, with what came back
+    const list = dock.querySelector("#tCalls");
+    list.innerHTML = STEPS.slice(0, at + 1).map((s, i) => `
+      <li class="${i === at && !done ? "now" : "done"}">
+        <span class="c-tick">${i === at && !done ? "" : "✓"}</span>
+        <code>${s.tool}<em>${s.args || ""}</em></code>
+        <span class="c-got">${i === at && !done ? "" : (s.got || "")}</span>
+      </li>`).join("");
+    list.scrollTop = list.scrollHeight;
+
+    dock.querySelector("#tWork").textContent = done
+      ? `Done · ${STEPS.length} tool calls`
+      : `Working · ${STEPS[at].title.toLowerCase()}`;
+    dock.querySelector("#tSpin").classList.toggle("still", done);
+
+    const said = dock.querySelector("#tSaid");
+    said.hidden = !done;
+    if (done) said.innerHTML = `<span class="td-who">Cutroom agent</span>
+      <p>Built a 31s cut from five places across the episode, cleaned out the hesitations,
+      and returned nine exact spans plus an ffmpeg command. It's on the reel — press
+      <b>Space</b> to hear it.</p>`;
+
     dock.querySelector("#tCount").textContent = `${at + 1} / ${STEPS.length}`;
     dock.querySelector("#tPlay").innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
     dock.querySelector("#tPlay").title = playing ? "Pause" : "Play";
@@ -183,16 +220,6 @@ const Tour = (() => {
     });
   }
 
-  const STEP_ICON = {
-    compass: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z" stroke-linejoin="round"/></svg>',
-    ear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>',
-    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>',
-    cards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="6" width="7" height="13" rx="1.5"/><rect x="13" y="6" width="7" height="13" rx="1.5" stroke-dasharray="2.5 2"/></svg>',
-    play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
-    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7L9.5 17.5 4 12"/></svg>',
-    broom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l5 5M13.5 6.5L17 10l-6 6H5v-6z"/></svg>',
-    doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 12h6M9 16h4"/></svg>',
-  };
   const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
   const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
   const ICON_PREV = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h2v14H7zM19 5v14l-9-7z"/></svg>';
@@ -210,19 +237,22 @@ const Tour = (() => {
     dock.innerHTML = `
       <div class="td-grip" id="tGrip" title="Drag me anywhere">
         <span class="td-badge">Demo</span>
-        <span class="td-note">real tool calls, in a scripted order</span>
+        <span class="td-note">scripted prompt · real tool calls</span>
         <span class="spacer"></span>
         <span class="td-count tnum" id="tCount"></span>
         <button class="td-x" id="tClose" title="Close">✕</button>
       </div>
-      <div class="td-body">
-        <span class="td-icon" id="tIcon"></span>
-        <div class="td-copy">
-          <h3 id="tTitle"></h3>
-          <p id="tSay"></p>
-          <code id="tTool"></code>
+
+      <div class="td-turn">
+        <div class="td-you"><span class="td-who">You</span><p id="tPrompt"></p></div>
+        <div class="td-work">
+          <span class="td-spin" id="tSpin"></span>
+          <span id="tWork">Working</span>
         </div>
+        <ol class="td-calls" id="tCalls"></ol>
+        <div class="td-said" id="tSaid" hidden></div>
       </div>
+
       <div class="td-timeline" id="tTimeline">
         ${STEPS.map((s, i) => `<button class="tl-cell" data-i="${i}" title="${s.tool}"><i></i></button>`).join("")}
       </div>
@@ -233,6 +263,7 @@ const Tour = (() => {
         <span class="spacer"></span>
         <button class="td-b wide" id="tReplay" title="Start again">${ICON_REPLAY}<span>Replay</span></button>
       </div>`;
+
     document.body.appendChild(dock);
     if (window.gsap) {
       gsap.set(dock, { y: 18, opacity: 0, scale: .985 });

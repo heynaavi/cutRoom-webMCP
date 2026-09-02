@@ -37,11 +37,27 @@
     }
     return [...out];
   };
-  for (const [where, obj] of [["document", globalThis.document?.modelContext], ["navigator", globalThis.navigator?.modelContext]]) {
-    if (!obj || seen.has(obj)) continue;
-    seen.add(obj);
-    surfaces.push({ where, obj, methods: methodsOf(obj), kind: Object.getPrototypeOf(obj) === Object.prototype ? "plain object" : (obj.constructor?.name || "unknown") });
+  collect();
+  function collect() {
+    surfaces.length = 0; seen.clear();
+    const found = [];
+    const doc = globalThis.document?.modelContext;
+    if (doc) found.push(["document", doc]);
+    // Only consult navigator when document has nothing: reading it emits a
+    // deprecation warning, and where both exist they're the same object.
+    else {
+      const nav = globalThis.navigator?.modelContext;
+      if (nav) found.push(["navigator", nav]);
+    }
+    for (const [where, obj] of found) {
+      if (!obj || seen.has(obj)) continue;
+      seen.add(obj);
+      surfaces.push({ where, obj, methods: methodsOf(obj),
+        kind: Object.getPrototypeOf(obj) === Object.prototype ? "plain object" : (obj.constructor?.name || "unknown") });
+    }
+    return surfaces.length;
   }
+
   const mc = surfaces[0]?.obj;
 
   // We now look for modelContext in <head>, which is as early as possible —
@@ -52,7 +68,7 @@
   if (!surfaces.length) {
     let tries = 0;
     const look = () => {
-      if (globalThis.document?.modelContext || globalThis.navigator?.modelContext) {
+      if (globalThis.document?.modelContext || (!globalThis.document?.modelContext && globalThis.navigator?.modelContext)) {
         clearInterval(iv);
         removeEventListener("visibilitychange", look);
         register();               // re-run the whole flow with the surface present
@@ -830,13 +846,7 @@
 
   function register() {
     // recompute surfaces — the point of re-entry is that they changed
-    surfaces.length = 0; seen.clear();
-    for (const [where, obj] of [["document", globalThis.document?.modelContext], ["navigator", globalThis.navigator?.modelContext]]) {
-      if (!obj || seen.has(obj)) continue;
-      seen.add(obj);
-      surfaces.push({ where, obj, methods: methodsOf(obj), kind: Object.getPrototypeOf(obj) === Object.prototype ? "plain object" : (obj.constructor?.name || "unknown") });
-    }
-    if (!surfaces.length) return;
+    if (!collect()) return;
     const jobs = [];
     for (const s of surfaces) {
       if (typeof s.obj.registerTool === "function") jobs.push(...TOOLS.map((t) => Promise.resolve(s.obj.registerTool(t))));
