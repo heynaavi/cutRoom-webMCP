@@ -1,7 +1,7 @@
 # Cutroom
 
 > A WebMCP surface for cutting podcast shorts. A 38-minute recording contains
-> maybe eight lines that, in the right order, are a story. Finding them is a
+> maybe five lines that, in the right order, are a story. Finding them is a
 > search problem with no correct answer — only taste — and you cannot judge a
 > candidate without hearing it. Cutroom lets an AI agent do the searching and
 > proposing while the person keeps the judging.
@@ -101,7 +101,8 @@ Notes on the calling convention, learned against Chrome 151:
   video with burned-in captions and saves it to their machine. Records in real
   time (a 40s cut takes ~40s and plays out loud), so warn them first and only
   do it once they're happy.
-- `exportCut` — EDL, JSON or a readable script, for taking into an editor.
+- `exportCut` — EDL, JSON, a readable script, or SRT captions timed against the
+  FINISHED cut rather than the source, so they burn straight onto the video.
 - `tidyClip` — drop leading/trailing filler words ("Um, so…") from a clip.
 - `tightenClip` / `omitPhrase` — take slack out of the MIDDLE of a clip and
   close the audio up behind it. A clip is a range minus its omissions, so you
@@ -140,6 +141,8 @@ out to the hundredth of a second, in playback order, including omissions inside
 clips. A 60-second short is often ten or more separate spans, and a vague
 timestamp is useless to whoever conforms it. It also emits a ready-to-run ffmpeg
 command — this page decides WHAT to cut; ffmpeg is better at doing the cutting.
+That command has been run: on the demo episode it produces a 30.53s file for a
+manifest claiming 30.5s across 8 spans. Hand it over as-is.
 
 ### Knowing where you are
 
