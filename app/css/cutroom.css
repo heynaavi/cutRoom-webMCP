@@ -237,7 +237,7 @@ input { font:inherit; color:inherit; }
   cursor:grab; transition:transform .14s, box-shadow .14s, border-color .14s, opacity .18s;
 }
 .clip:hover { transform:translateY(-2px); box-shadow:var(--shadow-2); }
-.clip.playing { border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent),var(--shadow-2); }
+.clip.playing { box-shadow:var(--shadow-2); outline:1.5px solid var(--accent); outline-offset:3px; }
 .clip.muted { opacity:.42; }
 .clip.muted .clip-text { text-decoration:line-through; text-decoration-color:var(--faint); }
 .clip.ghost { border-style:dashed; border-color:var(--ghost); background:var(--ghost-soft); }
