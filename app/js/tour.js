@@ -507,7 +507,7 @@ const Tour = (() => {
     wrap.innerHTML = `
       <div class="tour-card" role="dialog" aria-label="What Cutroom is">
         <div class="tour-brand"><span class="brand-mark">Cut<em>room</em></span><span class="chipish">WEBMCP</span></div>
-        <h2>A 38-minute podcast holds about eight lines that, in the right order, are a story.</h2>
+        <h2>A 38-minute podcast holds about five lines that, in the right order, are a story.</h2>
         <p>Finding them is a search problem with no correct answer — only taste — and you can't judge a candidate without hearing it.
            Cutroom gives an AI agent the tools to do the finding, and keeps you doing the judging.</p>
         ${heroDiagram()}

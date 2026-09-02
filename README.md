@@ -4,7 +4,7 @@
 
 **Live: <https://cutroom-webmcp.vercel.app/>**
 
-A 38-minute podcast contains maybe eight lines that, in the right order, are a
+A 38-minute podcast contains maybe five lines that, in the right order, are a
 story. Finding them is a search problem with no correct answer — only taste —
 and you cannot judge a candidate without *hearing* it.
 

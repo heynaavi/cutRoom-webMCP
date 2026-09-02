@@ -7,7 +7,7 @@
 
 ## Inspiration
 
-A 38-minute podcast contains maybe eight lines that, in the right order, are a
+A 38-minute podcast contains maybe five lines that, in the right order, are a
 story. Finding them is a search problem with no correct answer — only taste —
 and you cannot judge a candidate without hearing it.
 
@@ -67,7 +67,7 @@ cleanly along the one axis that matters:
 
 | The agent does | The human does |
 |---|---|
-| read 547 lines in a second | decide which eight are a story |
+| read 547 lines in a second | decide which five are a story |
 | hear where the voice lifts across 38 minutes | decide whether that's the right kind of energy |
 | trim to word boundaries, cut on breath | say "that's too long" after hearing it |
 
