@@ -120,6 +120,19 @@ order an agent would sensibly use them — and it's labelled as scripted. A fake
 agent would be both dishonest and less impressive than the truth, which is that
 it genuinely works. It leaves a real cut on the reel to carry on with.
 
+## When the agent can't call the tools
+
+Not every runtime bridges WebMCP yet. An agent that can only *fetch* is still
+given a real path rather than left to guess: `/.well-known/mcp.json` describes
+all 33 tools (generated from the registration code, so it can't drift), and
+`/data/transcript.json` plus `/data/peaks.json` are the same transcript and
+waveform the tools read.
+
+That's enough to pick real spans and return exact timestamps. It came from
+watching an agent with no bridge do precisely this on its own — fetch the
+transcript and assemble two workable cuts — so the page now documents the path
+instead of leaving it to be rediscovered.
+
 ## Trying it
 
 No build, no backend, no API keys — it's static files.
@@ -135,7 +148,7 @@ bin/try.sh
 ```
 
 That starts the server and opens Chrome with `--enable-features=WebMCP`. The
-pill top-right should read **"10 tools live"** — that's registration succeeding.
+pill top-right should read **"33 tools live"** — that's registration succeeding.
 Point it anywhere with `bin/try.sh https://cutroom-webmcp.vercel.app`.
 
 To prove the tools genuinely run through `document.modelContext` rather than

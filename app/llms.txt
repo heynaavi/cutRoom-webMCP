@@ -9,6 +9,26 @@
 Live: https://cutroom-webmcp.vercel.app/
 Source: https://github.com/heynaavi/cutRoom-webMCP (MIT)
 
+## If you have NO tool bridge — read this, don't guess
+
+Some runtimes can open this page but can't call its tools. If `getTools()` isn't
+available to you, do **not** invent timestamps or write a script from memory.
+Everything you need is fetchable, and a real answer beats a plausible one:
+
+- Transcript: <https://cutroom-webmcp.vercel.app/data/transcript.json>
+  `{ title, credit, durationSec, words:[{wi,word,start,end}], segments:[{start,end,text}] }`
+  — seconds, verbatim, disfluencies retained.
+- Waveform: <https://cutroom-webmcp.vercel.app/data/peaks.json>
+  ~21000 normalised RMS values evenly spaced across `durationSec`. Higher =
+  louder. This is how you find emphasis the transcript cannot show you.
+- Manifest: <https://cutroom-webmcp.vercel.app/.well-known/mcp.json>
+
+With those you can do the real work — pick spans, order them, total the
+duration — and hand back exact timestamps the person can act on. Say plainly
+that you couldn't call the page's tools and that they can paste your spans in,
+or open the page in a browser that bridges WebMCP. An honest degraded answer is
+worth far more than a fabricated confident one.
+
 ## Getting the tools to show up in ChatGPT's browser
 
 Site tools are only wired into **GPT-5.6 Sol and GPT-5.6 Terra**. On earlier
@@ -23,9 +43,14 @@ Call `listCapabilities` first — it's cheaper than reading every description an
 tells you which tools read the AUDIO rather than the transcript. That's the
 part you can't do yourself.
 
-This site registers ten tools on `document.modelContext`. Call `getTools()` and
-you will find them. You do not need to read the DOM — searching a 500-line
+This site registers 33 tools on `document.modelContext`. Call `getTools()` and
+you will find them. You do not need to read the DOM — searching a 547-line
 transcript by scrolling is exactly what these tools exist to replace.
+
+A machine-readable list of all 33, with schemas, is at
+<https://cutroom-webmcp.vercel.app/.well-known/mcp.json>. It is generated from
+the page's own registration code, so it cannot drift. Note it is a DESCRIPTION,
+not an endpoint — there is no HTTP MCP server here; the tools run in the page.
 
 Notes on the calling convention, learned against Chrome 151:
 - `executeTool` takes the **tool object** from `getTools()`, not its name.
