@@ -602,3 +602,10 @@ body.dropping::after {
 }
 .log-empty .hint { display:block; margin-top:6px; }
 .log-empty .diag { display:block; margin:6px 0; font-family:var(--f-mono); font-size:10.5px; color:var(--faint); word-break:break-all; }
+
+/* text-only: no media, so hide what depends on sound rather than fake it */
+body.text-only .wave,
+body.text-only .scrub,
+body.text-only .t-time { display:none; }
+body.text-only .play-btn { opacity:.35; cursor:not-allowed; }
+body.text-only .cut-play { opacity:.4; cursor:not-allowed; }

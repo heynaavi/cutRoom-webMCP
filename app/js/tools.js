@@ -53,7 +53,14 @@
       async execute() {
         Store.logTool("getSource", "");
         const s = Store.state.source;
-        return ok({ title: s.title, durationSec: s.durationSec, credit: s.credit, lineCount: Store.state.segments.length });
+        return ok({
+          title: s.title, durationSec: s.durationSec, credit: s.credit,
+          lineCount: Store.state.segments.length,
+          hasAudio: !Store.state.textOnly,
+          note: Store.state.textOnly
+            ? "Transcript only — no audio is loaded, so playReel and renderVideo won't work. Everything else does: you can still search, build the cut, and return exact timestamps. Tell them they can drop the media file on the page to add sound."
+            : "Audio is loaded, so you can play cuts back to them.",
+        });
       },
     },
     {
@@ -210,7 +217,7 @@
         properties: {
           title: { type: "string", description: "Name of the recording." },
           credit: { type: "string", description: "Source or attribution, if any." },
-          mediaUrl: { type: "string", description: "Optional direct URL to the audio/video. Must be CORS-readable; omit if unsure." },
+          mediaUrl: { type: "string", description: "Optional direct URL to the audio/video. Must be CORS-readable; omit if unsure — without it the page runs in text mode, which still does everything except play sound." },
           segments: {
             type: "array",
             description: "The transcript as timed lines, in order.",
@@ -450,6 +457,7 @@
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
       async execute() {
         if (!Store.live().length) return note("The reel is empty — nothing to render.");
+        if (Store.state.textOnly) return note("No audio is loaded, so there's nothing to render. Offer them getCutManifest instead — exact timestamps plus an ffmpeg command they can run against their own file.");
         Store.logTool("renderVideo", `${Math.round(Store.reelDur())}s`);
         const r = await UI.renderVideo();
         if (!r?.ok) return note(`Couldn't render: ${r?.error || "unknown error"}`);
@@ -767,6 +775,7 @@
       async execute({ fromIndex = 0 }) {
         const l = Store.live();
         if (!l.length) return note("The reel is empty — nothing to play.");
+        if (Store.state.textOnly) return note("There's no audio loaded — this transcript came without media, so nothing can be played. The cut is still real: use getCutManifest for exact timestamps, and tell them they can drop the media file onto the page to hear it.");
         Store.logTool("playReel", `${l.length} clips`);
         const started = await Player.playSequence(Store.playSpans());
         const total = l.reduce((n, c) => n + (c.end - c.start), 0);

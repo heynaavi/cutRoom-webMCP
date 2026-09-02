@@ -36,6 +36,16 @@ function toast(msg) {
 /* ── stage: caption + waveform ─────────────────────────────────────────────── */
 function renderCaption(sec) {
   const cap = $("#caption");
+  // Nothing to play, so the stage explains itself instead of inviting Space.
+  if (Store.state.textOnly) {
+    cap.className = "caption idle";
+    cap.innerHTML = Store.state.reel.length
+      ? `<b>${Store.live().length} clips · ${dur(Store.reelDur())}</b> — no audio loaded, so this can't be played.
+         Export exact timestamps, or drop the media file anywhere on this page to hear it.`
+      : `<b>Transcript loaded, no audio.</b> Search, cut, reorder and export exact timestamps —
+         everything except hearing it. Drop the media file anywhere on this page to add sound.`;
+    return;
+  }
   const seg = Store.segmentAt(sec);
   if (!seg || (!Player.playing && !Player.inSequence)) {
     if (!Store.state.reel.length) {
@@ -610,13 +620,36 @@ function loadSource(data, mediaUrl) {
   Store.state.starred = [];
   Store.state.candidates = [];
   Store.load(data);
-  if (mediaUrl) { Player.el.src = mediaUrl; Player.el.load(); PEAKS = null; }
+  // A transcript arriving WITHOUT media used to leave the previous audio
+  // loaded — so an agent handing us someone else's interview would play NASA
+  // underneath their words, with every timestamp pointing at the wrong sound.
+  // No media means no media: clear it and say so.
+  if (mediaUrl) { Player.el.src = mediaUrl; Player.el.load(); PEAKS = null; Store.state.textOnly = false; }
+  else {
+    Player.el.removeAttribute("src");
+    Player.el.load();
+    PEAKS = null; window.PEAKS = null;
+    Store.state.textOnly = true;
+  }
   $("#srcTitle").textContent = data.title;
-  $("#srcDur").textContent = `${Math.round(data.durationSec / 60)} min · ${data.segments.length} lines`;
+  $("#srcDur").textContent = `${Math.round(data.durationSec / 60)} min · ${data.segments.length} lines`
+    + (Store.state.textOnly ? " · no audio" : "");
   $("#search").placeholder = `Search ${Math.round(data.durationSec / 60)} minutes…`;
   Store.setTab("transcript");
+  renderTextOnly();
   renderList(); renderReel(); renderChips(); paint(0);
-  toast(`Loaded “${data.title}”`);
+  toast(Store.state.textOnly
+    ? `Loaded “${data.title}” — text only. Drop the audio file on the page to hear cuts.`
+    : `Loaded “${data.title}”`);
+}
+
+/* Text-only: everything except hearing it still works, and the page says which. */
+function renderTextOnly() {
+  const on = !!Store.state.textOnly;
+  document.body.classList.toggle("text-only", on);
+  $("#playBtn").disabled = on;
+  $("#playBtn").title = on ? "No audio loaded — drop the media file to hear cuts" : "Play";
+  renderCaption(Player.time || 0);
 }
 
 /* Drop your own material. Nothing uploads — createObjectURL keeps it local. */
@@ -636,7 +669,13 @@ function wireDrop() {
     try {
       const { data, mediaUrl, mediaName } = await Ingest.fromFiles([...e.dataTransfer.files]);
       if (data) loadSource(data, mediaUrl);
-      else if (mediaUrl) { Player.el.src = mediaUrl; Player.el.load(); PEAKS = null; toast(`Audio swapped — ${mediaName}`); }
+      else if (mediaUrl) {
+        // Audio dropped on its own — the common second half of "text first,
+        // media after", so keep the transcript and just add the sound.
+        Player.el.src = mediaUrl; Player.el.load(); PEAKS = null; window.PEAKS = null;
+        Store.state.textOnly = false; renderTextOnly(); paint(0);
+        toast(`Audio added — ${mediaName}. Press Space to hear the cut.`);
+      }
       else toast("Drop a media file and an SRT/VTT transcript.");
     } catch (err) { toast(err.message || "Could not read that file."); }
   });
@@ -693,9 +732,26 @@ async function boot() {
   $("#srcDur").textContent = `${Math.round(data.durationSec / 60)} min · ${data.segments.length} lines`;
   $("#search").placeholder = `Search ${Math.round(data.durationSec / 60)} minutes…`;
   renderReel(); renderChips(); renderList(); renderLog(); paint(0);
+  const openBtn = $("#openBtn"), filePick = $("#filePick");
+  if (openBtn && filePick) {
+    openBtn.onclick = () => filePick.click();
+    filePick.onchange = async () => {
+      if (!filePick.files?.length) return;
+      try {
+        const { data, mediaUrl, mediaName } = await Ingest.fromFiles([...filePick.files]);
+        if (data) loadSource(data, mediaUrl);
+        else if (mediaUrl) {
+          Player.el.src = mediaUrl; Player.el.load(); PEAKS = null; window.PEAKS = null;
+          Store.state.textOnly = false; renderTextOnly(); paint(0);
+          toast(`Audio added — ${mediaName}`);
+        } else toast("Pick a media file and an SRT/VTT transcript.");
+      } catch (err) { toast(err.message || "Could not read that file."); }
+      filePick.value = "";
+    };
+  }
   const tourBtn = $("#tourBtn");
   if (tourBtn) tourBtn.onclick = () => Tour.show();
   Tour.boot();
 }
-const UI = { loadSource, toast, paint, exportCut, renderVideo };
+const UI = { loadSource, toast, paint, exportCut, renderVideo, renderTextOnly };
 boot();
