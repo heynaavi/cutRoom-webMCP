@@ -774,13 +774,20 @@
         Store.logTool("getCutManifest", format);
         const tc = (x) => { const t = Math.floor(x); return `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Math.floor(t / 60) % 60).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}.${String(Math.round((x % 1) * 1000)).padStart(3, "0")}`; };
         const total = spans.reduce((n, s) => n + (s.end - s.start), 0);
+        // Verified against ffmpeg 7.1.1: this exact string, run on the demo
+        // episode, produces a file whose duration matches durationSec to a
+        // hundredth. Commas inside a single-quoted filter expression don't need
+        // escaping in modern ffmpeg — an earlier version wrote "\," here, which
+        // a template literal collapses to "," anyway, so the escape was doing
+        // nothing but looking like it was.
+        const f = spans.map((s) => `between(t,${s.start.toFixed(3)},${s.end.toFixed(3)})`).join("+");
+        const ffmpeg = {
+          command: `ffmpeg -i INPUT -vf "select='${f}',setpts=N/FRAME_RATE/TB" -af "aselect='${f}',asetpts=N/SR/TB" OUTPUT.mp4`,
+          audioOnly: `ffmpeg -i INPUT -af "aselect='${f}',asetpts=N/SR/TB" OUTPUT.m4a`,
+          note: "Single-pass select filter; drop -vf for an audio-only source. For frame-exact cuts on long video, cutting each span separately and concat-demuxing is more reliable.",
+        };
         if (format === "ffmpeg") {
-          const f = spans.map((s) => `between(t\,${s.start.toFixed(3)}\,${s.end.toFixed(3)})`).join("+");
-          return ok({
-            spanCount: spans.length, durationSec: +total.toFixed(2),
-            command: `ffmpeg -i INPUT -vf "select='${f}',setpts=N/FRAME_RATE/TB" -af "aselect='${f}',asetpts=N/SR/TB" OUTPUT.mp4`,
-            note: "Single-pass select filter. For frame-exact cuts on long sources, cutting each span separately and concat-demuxing is more reliable.",
-          });
+          return ok({ spanCount: spans.length, durationSec: +total.toFixed(2), ...ffmpeg });
         }
         if (format === "edl") {
           let rec = 0;
@@ -792,6 +799,7 @@
           title: Store.state.source.title, credit: Store.state.source.credit,
           spanCount: spans.length, durationSec: +total.toFixed(2),
           redactionsApplied: Store.state.redactions.length,
+          ffmpeg,
           spans: spans.map((s, i) => {
             const row = { n: i + 1, sourceInSec: +s.start.toFixed(2), sourceOutSec: +s.end.toFixed(2),
                           durationSec: +(s.end - s.start).toFixed(2),

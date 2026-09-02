@@ -61,7 +61,7 @@ that responds to *that* is reading taste, not executing a task.
 | `getCandidates` | Every angle proposed, and how the human reacted |
 | `renderVideo` | **Renders a real 1080×1920 video** with burned-in captions, in-browser |
 | `exportCut` | EDL / JSON / script / **SRT timed against the finished cut**, so it can leave the browser |
-| `getCutManifest` | Every span to a hundredth of a second, plus the ffmpeg command |
+| `getCutManifest` | Every span to a hundredth of a second, plus an ffmpeg command that has been run and checked |
 | `cleanUpCut` | One pass: stammers, false starts, hesitations, dead air, across every clip |
 | `redactPhrase` / `redactRange` | Material that must not ship, on the record and in the export |
 | `getWorkflowState` | Where this session has got to, and what's sensible next |

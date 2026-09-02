@@ -51,8 +51,11 @@ that opens mid-thought, a clip starting on a pronoun with no antecedent in the
 cut, a join that cuts in mid-flow, everything drawn from one stretch.
 `snapToBreath` moves cut points to real pauses. `cleanUpCut` removes stammers
 and dead air from the *middle* of a clip and closes the audio up behind them.
-`getCutManifest` returns every span to a hundredth of a second, plus a ffmpeg
-command — we decide what to cut; ffmpeg does the cutting. `exportCut` hands
+`getCutManifest` returns every span to a hundredth of a second, plus an ffmpeg
+command — we decide what to cut; ffmpeg does the cutting. That command is not a
+plausible-looking string: run against the demo episode it produces a 30.53s file
+for a manifest claiming 30.5s across 8 spans, which is AAC frame quantisation
+and nothing else. `exportCut` hands
 over EDL, JSON, a readable script, or **SRT captions timed against the finished
 cut** rather than the source, so they burn straight onto the exported video.
 
