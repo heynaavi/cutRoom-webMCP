@@ -153,17 +153,23 @@ const Store = (() => {
       emit("reel");
     },
 
+    // Accepting a proposal is the decision this whole page is built around, and
+    // "Keep all 5" is one click. Both are undoable — muting and voting aren't,
+    // because clicking them again is the undo.
     keepGhost(id) {
       const c = state.reel.find((x) => x.id === id);
       if (!c || !c.ghost) return;
-      c.ghost = false;
+      snapshot("keep clip");
+      state.reel = state.reel.map((x) => (x.id === id ? { ...x, ghost: false } : x));
       emit("reel");
     },
 
     keepAllGhosts() {
-      let n = 0;
-      state.reel.forEach((c) => { if (c.ghost) { c.ghost = false; n++; } });
-      if (n) emit("reel");
+      const n = state.reel.filter((c) => c.ghost).length;
+      if (!n) return 0;
+      snapshot(n > 1 ? `keep ${n} clips` : "keep clip");
+      state.reel = state.reel.map((c) => (c.ghost ? { ...c, ghost: false } : c));
+      emit("reel");
       return n;
     },
 
