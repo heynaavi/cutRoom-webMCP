@@ -91,6 +91,9 @@
 
 <!-- Registered first, before any fetch or render, so a runtime that snapshots page tools early finds them. -->
 <script src="js/tools.js"></script>
+<script type="application/json" id="cutroom-tools">
+{"toolCount":33,"manifest":"/.well-known/mcp.json","guidance":"/llms.txt","tools":["getSource","searchTranscript","readTranscript","getReelState","proposeCut","addSpan","removeClip","reorderClip","loadTranscript","trimClip","getCandidates","exportCut","undoLastChange","findEnergyMoments","checkFlow","snapToBreath","setClipRole","tidyClip","fitToBudget","playCandidate","renderVideo","findPhrase","addPhrase","reshapeClip","listCapabilities","tightenClip","omitPhrase","redactPhrase","redactRange","cleanUpCut","getCutManifest","getWorkflowState","playReel"]}
+</script>
 <link rel="stylesheet" href="css/cutroom.css" />
 </head>
 <body>
@@ -185,7 +188,15 @@
       <div class="log">
         <div class="log-head">Agent activity</div>
         <div class="log-body" id="logBody">
-          <div class="log-empty" id="logEmpty">Checking for WebMCP…</div>
+          <div class="log-empty" id="logEmpty">
+            <!-- cutroom:static-status -->
+            <b>33 WebMCP tools are registered on this page</b> by <code>js/tools.js</code>, at runtime, on
+            <code>document.modelContext</code>. If you are reading this as static HTML you will not see the
+            live registry — it only exists inside a browsing context. The full list with schemas is at
+            <a href="/.well-known/mcp.json">/.well-known/mcp.json</a>, and guidance for agents,
+            including what to do when your runtime has no tool bridge, is at <a href="/llms.txt">/llms.txt</a>.
+            <!-- /cutroom:static-status -->
+          </div>
         </div>
       </div>
     </aside>

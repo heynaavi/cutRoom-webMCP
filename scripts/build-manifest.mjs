@@ -48,4 +48,18 @@ const manifest = {
 };
 
 writeFileSync("app/.well-known/mcp.json", JSON.stringify(manifest, null, 2) + "\n");
-console.log(`manifest: ${TOOLS.length} tools, ${TOOLS.filter((t) => t.annotations?.readOnlyHint).length} read-only`);
+
+// Keep the static HTML honest too: the count an agent reads without running JS,
+// and a machine-readable tool list for one that parses the source.
+let html = readFileSync("app/index.html", "utf8");
+html = html.replace(/(<!-- cutroom:static-status -->\s*\n\s*<b>)\d+( WebMCP tools)/,
+                    `$1${TOOLS.length}$2`);
+const block = `<script type="application/json" id="cutroom-tools">\n${JSON.stringify(
+  { toolCount: TOOLS.length, manifest: "/.well-known/mcp.json", guidance: "/llms.txt",
+    tools: TOOLS.map((t) => t.name) })}\n</script>`;
+html = /<script type="application\/json" id="cutroom-tools">[\s\S]*?<\/script>/.test(html)
+  ? html.replace(/<script type="application\/json" id="cutroom-tools">[\s\S]*?<\/script>/, block)
+  : html.replace('<link rel="stylesheet" href="css/cutroom.css" />', `${block}\n<link rel="stylesheet" href="css/cutroom.css" />`);
+writeFileSync("app/index.html", html);
+
+console.log(`manifest: ${TOOLS.length} tools, ${TOOLS.filter((t) => t.annotations?.readOnlyHint).length} read-only; index.html static block synced`);
