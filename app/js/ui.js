@@ -21,6 +21,7 @@ const ICON = {
 
 let PEAKS = null;
 let toastT = 0;
+let lastPlayGlyph = null;
 
 function toast(msg) {
   const t = $("#toast");
@@ -96,7 +97,16 @@ function renderTransport(sec) {
   const frac = total ? Math.max(0, Math.min(1, now / total)) : 0;
   $("#scrubFill").style.width = `${frac * 100}%`;
   $("#scrubHead").style.left = `${frac * 100}%`;
-  $("#playBtn").innerHTML = Player.playing ? ICON.pause : ICON.play;
+  // Only rewrite the glyph when the state actually flips. paint() runs every
+  // frame while playing, and replacing innerHTML mid-gesture detaches the <svg>
+  // the mousedown landed on — so mousedown and mouseup end up in different
+  // trees, no common ancestor, and the browser never fires a click at all.
+  // That's why the button could start playback but never stop it, while the
+  // keyboard path (which doesn't depend on hit-testing) worked both ways.
+  if (lastPlayGlyph !== Player.playing) {
+    lastPlayGlyph = Player.playing;
+    $("#playBtn").innerHTML = Player.playing ? ICON.pause : ICON.play;
+  }
   const ci = Player.seqIndex;
   const chip = $("#stageClip");
   chip.classList.toggle("on", ci >= 0);
