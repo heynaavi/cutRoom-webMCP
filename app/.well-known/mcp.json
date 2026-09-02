@@ -299,7 +299,7 @@
     },
     {
       "name": "exportCut",
-      "description": "Hand the finished cut to the human as a file they can take into an editor. 'edl' gives timecoded in/out points, 'json' gives the raw spans and text, 'text' gives a readable script. Offer this once they sound happy — a cut that can't leave the browser is a toy.",
+      "description": "Hand the finished cut to the human as a file they can take into an editor. 'edl' gives timecoded in/out points against the source, 'json' gives the raw spans and text, 'srt' gives captions timed against the FINISHED cut (so they burn straight onto the exported video), 'text' gives a readable script. Offer this once they sound happy — a cut that can't leave the browser is a toy.",
       "readOnly": false,
       "inputSchema": {
         "type": "object",
@@ -310,6 +310,7 @@
             "enum": [
               "edl",
               "json",
+              "srt",
               "text"
             ],
             "description": "Defaults to json."

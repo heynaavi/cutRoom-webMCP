@@ -12,6 +12,12 @@ globalThis.document = { modelContext: undefined, readyState: "complete",
   addEventListener() {}, getElementById: () => ({ classList: { add() {} }, innerHTML: "", textContent: "", title: "" }) };
 Object.defineProperty(globalThis, "navigator", { value: {}, configurable: true });
 globalThis.window = globalThis;
+// tools.js watches for a late-attaching agent with bare addEventListener calls,
+// which resolve to globalThis and don't exist in Node. Without these the whole
+// build throws and you keep shipping whatever manifest was there before.
+globalThis.addEventListener = () => {};
+globalThis.removeEventListener = () => {};
+globalThis.matchMedia = () => ({ matches: false, addEventListener() {} });
 for (const k of ["Store", "Player", "UI", "Analysis", "Ingest"]) globalThis[k] = stub();
 new Function(src)();
 
