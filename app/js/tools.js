@@ -209,8 +209,15 @@
         const l = Store.live();
         if (!l.length) return note("The reel is empty — nothing to play.");
         Store.logTool("playReel", `${l.length} clips`);
-        Player.playSequence(l.slice(Math.max(0, fromIndex)));
+        const started = await Player.playSequence(l.slice(Math.max(0, fromIndex)));
         const total = l.reduce((n, c) => n + (c.end - c.start), 0);
+        if (!started) {
+          return note(
+            `The browser blocked playback — it won't let a page start audio until the person has ` +
+            `interacted with it. The cut is loaded and ready (${l.length} clips, ${total.toFixed(1)}s). ` +
+            `Ask them to press Space or hit play once; after that I can start playback for them.`
+          );
+        }
         return note(`Playing ${l.length} clips, ${total.toFixed(1)}s. Ask them what they'd change once it finishes.`);
       },
     },

@@ -57,30 +57,7 @@ function renderCaption(sec) {
   }).join(" ");
 }
 
-function buildWave() {
-  const el = $("#wave");
-  el.innerHTML = Array.from({ length: 132 }, () => "<i></i>").join("");
-}
-function renderWave(sec) {
-  const bars = $("#wave").children;
-  const n = bars.length;
-  const win = 6; // seconds of context either side
-  for (let k = 0; k < n; k++) {
-    const t = sec + ((k / n) - 0.5) * win * 2;
-    let amp = 0;
-    if (PEAKS && Store.state.source.durationSec) {
-      const p = Math.floor((t / Store.state.source.durationSec) * PEAKS.length);
-      amp = PEAKS[Math.max(0, Math.min(PEAKS.length - 1, p))] ?? 0;
-    } else {
-      // fallback: word density reads as speech energy
-      const c = Store.state.words.filter((w) => w.start >= t - 0.25 && w.start < t + 0.25).length;
-      amp = Math.min(1, c / 2.2);
-    }
-    const b = bars[k];
-    b.style.height = `${4 + amp * 44}px`;
-    b.classList.toggle("hot", Math.abs(k - n / 2) < 2.5);
-  }
-}
+function buildWave() { Wave.build($("#wave")); }
 
 /* ── transport + provenance ────────────────────────────────────────────────── */
 function renderTransport(sec) {
@@ -257,6 +234,7 @@ function renderList() {
     return i < 0 ? esc(t) : `${esc(t.slice(0, i))}<mark>${esc(t.slice(i, i + q.length))}</mark>${esc(t.slice(i + q.length))}`;
   };
 
+  speakingSeg = -1;
   const now = Player.time;
   list.innerHTML = segs.map((s) => `
     <div class="seg${S.starred.includes(s.i) ? " starred" : ""}${used.has(s.i) ? " used" : ""}${now >= s.start && now < s.end ? " speaking" : ""}" data-seg="${s.i}">
@@ -277,6 +255,7 @@ function wireRail() {
     Store.setTab(b.dataset.tab);
   });
   $("#search").addEventListener("input", (e) => Store.setQuery(e.target.value));
+  $("#list").addEventListener("wheel", () => { userScrolledAt = Date.now(); }, { passive: true });
   $("#list").addEventListener("click", (e) => {
     const cand = e.target.closest("[data-cand]");
     if (cand) { const c = Store.applyCandidate(cand.dataset.cand); if (c) { toast(`“${c.title}” — press Space to hear it`); } return; }
@@ -287,13 +266,68 @@ function wireRail() {
       return;
     }
     const row = e.target.closest("[data-seg]"); if (!row) return;
+    const list = $("#list");
     const s = Store.state.segments[+row.dataset.seg]; if (!s) return;
     const act = e.target.closest("[data-act]")?.dataset.act;
-    if (act === "seek") Player.playFrom(s.start);
-    else if (act === "preview") Player.playSpan(s.start, s.end);
+    if (act === "preview") Player.playSpan(s.start, s.end);
     else if (act === "star") toast(Store.star(s.i) ? "Starred" : "Unstarred");
     else if (act === "add") { Store.addSpan({ start: s.start, end: s.end, text: s.text }); toast("Added to reel"); }
+    else {
+      // Click the line, hear it — and park it where the follow will keep it, so
+      // the view doesn't jump when the next line takes over. play() is async, so
+      // followTranscript's first pass still sees playing:false and bails.
+      userScrolledAt = 0;
+      Player.playFrom(s.start);
+      speakingSeg = s.i;
+      list.querySelectorAll(".seg.speaking").forEach((n) => n.classList.remove("speaking"));
+      row.classList.add("speaking");
+      parkRow(row);
+    }
   });
+}
+
+
+/* ── transcript follow ────────────────────────────────────────────────────── */
+// Retagging 500 rows every frame would be absurd, so only the row that changed
+// is touched. Auto-scroll parks the speaking line third from the top, which
+// keeps the next couple of lines visible instead of pinning it to the edge.
+let speakingSeg = -1;
+let userScrolledAt = 0;
+
+function followTranscript(sec) {
+  if (Store.state.tab !== "transcript" || Store.state.query) return;
+  const seg = Store.segmentAt(sec);
+  const i = seg ? seg.i : -1;
+  if (i === speakingSeg) return;
+
+  const list = $("#list");
+  if (speakingSeg >= 0) list.querySelector(`[data-seg="${speakingSeg}"]`)?.classList.remove("speaking");
+  speakingSeg = i;
+  if (i < 0) return;
+
+  const row = list.querySelector(`[data-seg="${i}"]`);
+  if (!row) return;
+  row.classList.add("speaking");
+
+  // Don't fight someone who is reading ahead.
+  if (!Player.playing || Date.now() - userScrolledAt < 4000) return;
+
+  parkRow(row);
+}
+
+/* Park a row third from the top of the list. */
+function parkRow(row) {
+  const list = $("#list");
+  const rows = [...list.children];
+  const anchor = rows[Math.max(0, rows.indexOf(row) - 2)] || row;
+  // Rect deltas rather than offsetTop: .list isn't a positioned ancestor, so
+  // offsetTop measures against something further up and lands nowhere near.
+  // NB also: gsap.to(el,{scrollTop}) is a no-op — not a CSS property, needs
+  // ScrollToPlugin. Native smooth scroll is fine.
+  const to = Math.max(0, list.scrollTop + (anchor.getBoundingClientRect().top - list.getBoundingClientRect().top) - 6);
+  // Smooth is right for line-to-line drift; across 500 lines it becomes a long
+  // animated crawl, so jump when the distance is big.
+  list.scrollTo({ top: to, behavior: Math.abs(to - list.scrollTop) > 900 ? "auto" : "smooth" });
 }
 
 /* ── agent log ────────────────────────────────────────────────────────────── */
@@ -359,7 +393,7 @@ function wireKeys() {
 
 /* ── boot ─────────────────────────────────────────────────────────────────── */
 function paint(sec) {
-  renderCaption(sec); renderWave(sec); renderTransport(sec); renderProv(sec);
+  renderCaption(sec); renderTransport(sec); renderProv(sec); Wave.tick(sec); followTranscript(sec);
 }
 
 /* Swap in a different recording — from a dropped file or from an agent. */
@@ -431,12 +465,13 @@ async function boot() {
     if (what === "log") renderLog();
   });
   Player.on("time", (t) => paint(t));
-  Player.on("playing", () => { paint(Player.time); renderReel(); });
+  Player.on("playing", (p) => { p ? Wave.start() : Wave.stop(); paint(Player.time); renderReel(); });
   Player.on("clip", () => { renderReel(); paint(Player.time); });
 
   const data = await fetch("data/transcript.json").then((r) => r.json());
   Store.load(data);
   try { PEAKS = await fetch("data/peaks.json").then((r) => r.ok ? r.json() : null); } catch { PEAKS = null; }
+  window.PEAKS = PEAKS;
 
   $("#srcTitle").textContent = data.title;
   $("#srcDur").textContent = `${Math.round(data.durationSec / 60)} min · ${data.segments.length} lines`;

@@ -13,6 +13,21 @@ const Player = (() => {
   let seq = null;      // [{start,end}] when playing the reel
   let idx = 0;
   let raf = 0;
+  let unlocked = false;
+
+  // Autoplay policy blocks play() until the human has interacted with the page.
+  // That matters here because an AGENT can ask for playback — and a tool that
+  // reports "playing" when the browser silently refused is worse than useless.
+  // So: unlock on the first real gesture, and let callers see whether it worked.
+  const unlock = () => {
+    if (unlocked) return;
+    unlocked = true;
+    const wasMuted = el.muted;
+    el.muted = true;
+    el.play().then(() => { el.pause(); el.muted = wasMuted; })
+             .catch(() => { el.muted = wasMuted; unlocked = false; });
+  };
+  ["pointerdown", "keydown"].forEach((k) => document.addEventListener(k, unlock, { once: false, passive: true }));
 
   // Tight polling: `timeupdate` only fires ~4x/sec, which is too coarse to cut
   // between clips cleanly (you'd hear up to 250ms of the next line's lead-in).
@@ -58,8 +73,11 @@ const Player = (() => {
     get seqIndex() { return seq ? idx : -1; },
     get inSequence() { return !!seq; },
 
-    /* Play an ordered list of spans back to back. */
-    playSequence(spans) {
+    get canPlay() { return unlocked; },
+
+    /* Play an ordered list of spans back to back.
+       Resolves true only if the browser actually started playing. */
+    async playSequence(spans) {
       const list = (spans || [])
         .filter((s) => s && s.end > s.start)
         .map((s) => ({ start: s.start, end: s.end }));
@@ -67,7 +85,7 @@ const Player = (() => {
       seq = list; idx = 0;
       el.currentTime = list[0].start;
       emit("clip", 0);
-      el.play().catch(() => {});
+      try { await el.play(); } catch { return false; }
       kick();
       return true;
     },

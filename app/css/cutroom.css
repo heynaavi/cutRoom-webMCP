@@ -117,7 +117,7 @@ input { font:inherit; color:inherit; }
   background:linear-gradient(158deg,var(--raised),var(--surface-2));
   border:1px solid var(--hairline); box-shadow:var(--shadow-2);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:30px 40px 84px; overflow:hidden;
+  padding:30px 40px 58px; overflow:hidden;
 }
 /* subtle paper grain so the flat card doesn't read as a placeholder */
 .stage-card::after {
@@ -153,9 +153,14 @@ input { font:inherit; color:inherit; }
 }
 
 /* waveform */
-.wave { position:absolute; left:0; right:0; bottom:0; height:64px; display:flex;
-        align-items:flex-end; gap:2px; padding:0; opacity:.5; z-index:1; }
-.wave i { flex:1; background:var(--text); border-radius:1px 1px 0 0; min-height:3px; transition:height .09s linear, background .2s; }
+.wave { position:absolute; left:0; right:0; bottom:0; height:34px; display:flex;
+        align-items:flex-end; gap:1px; padding:0; z-index:1; }
+.wave i {
+  flex:1; min-height:1.5px; border-radius:1px 1px 0 0; will-change:height;
+  /* only the few bars either side of "now" take the accent */
+  background:color-mix(in oklab, var(--accent) calc(var(--heat) * 100%), var(--text));
+  opacity:var(--fade);
+}
 .wave i.hot { background:var(--accent); }
 
 /* ── transport ────────────────────────────────────────────────────────────── */
@@ -303,8 +308,16 @@ input { font:inherit; color:inherit; }
   position:relative; display:flex; gap:9px; padding:8px 9px; border-radius:var(--r-sm);
   transition:background .12s; cursor:default;
 }
+.seg { cursor:pointer; }
 .seg:hover { background:var(--bg); }
 .seg.speaking { background:var(--accent-soft); }
+.seg.speaking .seg-text { color:var(--text); }
+.seg.speaking .seg-ts { color:var(--accent); }
+/* a quiet marker so the played line reads even against the warm ground */
+.seg.speaking::before {
+  content:""; position:absolute; left:0; top:6px; bottom:6px; width:2px;
+  background:var(--accent); border-radius:2px;
+}
 .seg.used { opacity:.44; }
 .seg-ts { font-family:var(--f-mono); font-size:10px; color:var(--faint); flex:none;
           padding-top:2px; width:38px; cursor:pointer; }
