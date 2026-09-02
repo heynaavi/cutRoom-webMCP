@@ -110,19 +110,37 @@ function renderTransport(sec) {
   if (ci >= 0) chip.textContent = `clip ${ci + 1} / ${Store.live().length}`;
 }
 
+// This is the picture of what the page does: five marks, drawn from across a
+// 38-minute hour. It's worth animating — and it was being torn down and rebuilt
+// sixty times a second, because paint() calls this on every frame. Rebuild only
+// when the reel actually changes, and the marks can arrive rather than appear.
+let provSig = "";
 function renderProv(sec) {
   const bar = $("#provBar");
   const D = Store.state.source.durationSec || 1;
-  bar.querySelectorAll(".prov-mk").forEach((n) => n.remove());
-  Store.state.reel.forEach((c) => {
-    const m = document.createElement("div");
-    m.className = "prov-mk" + (c.ghost ? " ghost" : "");
-    m.style.left = `${(c.start / D) * 100}%`;
-    m.style.width = `${Math.max(0.35, ((c.end - c.start) / D) * 100)}%`;
-    if (c.muted) m.style.opacity = ".28";
-    m.title = `${ts(c.start)} — ${c.text.slice(0, 70)}`;
-    bar.appendChild(m);
-  });
+  const sig = Store.state.reel
+    .map((c) => `${c.id}:${c.start.toFixed(2)}:${c.end.toFixed(2)}:${c.ghost ? 1 : 0}:${c.muted ? 1 : 0}`)
+    .join("|");
+  if (sig !== provSig) {
+    provSig = sig;
+    bar.querySelectorAll(".prov-mk").forEach((n) => n.remove());
+    const made = [];
+    Store.state.reel.forEach((c) => {
+      const m = document.createElement("div");
+      m.className = "prov-mk" + (c.ghost ? " ghost" : "");
+      m.style.left = `${(c.start / D) * 100}%`;
+      m.style.width = `${Math.max(0.35, ((c.end - c.start) / D) * 100)}%`;
+      if (c.muted) m.style.opacity = ".28";
+      m.title = `${ts(c.start)} — ${c.text.slice(0, 70)}`;
+      bar.appendChild(m);
+      made.push(m);
+    });
+    // Left to right, in episode order — so you watch the cut being drawn out of
+    // the hour rather than being handed the finished picture.
+    if (window.gsap && made.length) {
+      gsap.from(made, { scaleY: 0, opacity: 0, duration: .42, ease: "back.out(1.9)", stagger: .055 });
+    }
+  }
   $("#provPlay").style.left = `${((Player.inSequence ? Player.time : sec) / D) * 100}%`;
   const sp = Store.spread();
   $("#provSpread").textContent = Store.live().length > 1 ? `· drawn across ${Math.round(sp * 100)}% of the episode` : "";
@@ -131,6 +149,7 @@ function renderProv(sec) {
 
 /* ── reel ─────────────────────────────────────────────────────────────────── */
 let dragId = null;
+let knownClips = new Set();
 
 function renderReel() {
   const strip = $("#strip");
@@ -163,6 +182,16 @@ function renderReel() {
         </div>
       </div>`;
     }).join("");
+  }
+
+  // Only cards that weren't there a moment ago animate. renderReel runs on
+  // every clip boundary during playback, and re-animating the whole strip each
+  // time a new line starts would be seasickness, not motion.
+  const ids = [...strip.querySelectorAll(".clip")].map((el) => el.dataset.id);
+  const fresh = [...strip.querySelectorAll(".clip")].filter((el) => !knownClips.has(el.dataset.id));
+  knownClips = new Set(ids);
+  if (window.gsap && fresh.length) {
+    gsap.from(fresh, { y: 16, opacity: 0, duration: .44, ease: "power3.out", stagger: .07, clearProps: "all" });
   }
 
   const d = Store.reelDur(), T = Store.state.targetSec;

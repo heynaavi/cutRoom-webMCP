@@ -711,6 +711,67 @@ body.text-only .cut-play { opacity:.4; cursor:not-allowed; }
 .keys-row span { font-size:13.5px; color:var(--text-2); }
 .keys-hint { margin-top:14px; font-size:12px; color:var(--faint); text-align:center; }
 
+/* ── the hour, drawn ──────────────────────────────────────────────────────── */
+/* 547 hairlines and five blocks. It is the product's one-sentence argument in
+   a form you can take in before you've read a word of it. */
+.tour-hero { margin:20px 0 4px; }
+.th-bar {
+  position:relative; height:46px; border-radius:var(--r-sm);
+  background:var(--surface-2); overflow:hidden;
+}
+.th-ticks { position:absolute; inset:0; }
+.th-ticks i {
+  position:absolute; top:14px; bottom:14px; width:1px;
+  background:var(--text); opacity:.14;
+}
+/* The clips have to win against 547 competitors, so they're taller, wider than
+   their true duration, and haloed in the track colour to cut a gap around them. */
+.th-bar b {
+  position:absolute; top:5px; bottom:5px; min-width:5px; border-radius:2.5px;
+  background:var(--accent); box-shadow:0 0 0 2px var(--surface-2);
+}
+.th-legend {
+  display:flex; align-items:center; gap:9px; margin-top:9px;
+  font-family:var(--f-mono); font-size:10.5px; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--muted);
+}
+.th-legend em { font-style:normal; font-weight:600; color:var(--text); }
+.th-to { color:var(--accent); }
+.th-scale { text-transform:none; letter-spacing:0; color:var(--faint); }
+
+/* ── presenter mode ───────────────────────────────────────────────────────── */
+/* A teleprompter, not a caption. It only appears when you're recording, so it
+   can take the space it needs to be read from a metre away. */
+.td-say { display:none; }
+.tour-dock.presenting { width:440px; }
+.tour-dock.presenting .td-say {
+  display:block; padding:14px 16px 15px; border-bottom:1px solid var(--hairline);
+  background:linear-gradient(var(--accent-soft), transparent);
+}
+.td-say .td-cue {
+  display:block; font-family:var(--f-mono); font-size:10px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:7px;
+}
+.td-say p {
+  margin:0; font-family:var(--f-display); font-size:17px; line-height:1.38;
+  color:var(--text); text-wrap:pretty;
+}
+.td-say .td-adv {
+  display:block; margin-top:9px; font-family:var(--f-mono); font-size:10.5px;
+  color:var(--muted);
+}
+/* Presenter mode holds every step, so a progress bar would be a lie. */
+.tour-dock.presenting .tl-cell i { transition:none; }
+.tour-dock.presenting .td-turn { max-height:min(34vh, 260px); }
+
+.td-clock {
+  font-family:var(--f-mono); font-size:11px; color:var(--muted);
+  padding:2px 6px; border-radius:5px; background:var(--surface-2);
+}
+.td-clock.warn { color:var(--warn); }
+.td-clock.over { color:var(--on-accent); background:var(--danger); }
+.td-x.on { color:var(--accent); background:var(--accent-soft); }
+
 /* ── reduced motion ───────────────────────────────────────────────────────── */
 /* Everything here is decoration on top of state that is already correct — the
    demo dock still moves between steps, it just arrives instead of travelling.

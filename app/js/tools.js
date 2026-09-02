@@ -612,7 +612,16 @@
         Store.logTool("listCapabilities", "");
         return ok({
           whatThisIs: "A cutting surface for turning a long recording into a short. You do the finding and proposing; the person listening does the judging. Nothing you do is final until they keep it.",
-          readsTheAudioNotTheTranscript: ["findEnergyMoments", "snapToBreath", "tightenClip"],
+          // Every one of these bottoms out in the RMS envelope in analysis.js.
+          // Kept as a list rather than a count so the number can't drift away
+          // from the truth — the demo and the write-up both read it from here.
+          readsTheAudioNotTheTranscript: [
+            "findEnergyMoments — where the voice lifts above its own baseline",
+            "snapToBreath — move an edit point into a real pause",
+            "tightenClip — dead air out of the middle, audio closed up behind it",
+            "cleanUpCut — the same pass across every clip at once",
+            "checkFlow — flags joins that land on speech instead of in a breath",
+          ],
           suggestedOrder: [
             "getSource — what am I cutting",
             "searchTranscript + findEnergyMoments — topic and delivery; the best clips are where they overlap",

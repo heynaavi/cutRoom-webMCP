@@ -155,7 +155,7 @@ To let a **real model** discover and drive the tools — the claim WebMCP actual
 makes — point an API key at the page:
 
 ```bash
-ANTHROPIC_API_KEY=… node scripts/agent.mjs "find me 60 seconds on how he went from electrician to astronaut"
+ANTHROPIC_API_KEY=… node scripts/agent.mjs "find me 60 seconds on how she went from electrician to astronaut"
 # or OPENAI_API_KEY=…
 ```
 

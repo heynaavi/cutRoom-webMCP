@@ -14,13 +14,16 @@ const Tour = (() => {
   const SEEN = "cutroom.seen.v2";
   const seg = (q) => Store.state.segments.find((s) => s.text.toLowerCase().includes(q));
 
-  /* The cut the demo builds — five beats from five places in the hour. */
+  /* The cut the demo builds — five beats, 31 seconds, drawn across 68% of a
+     38-minute episode. Each string is a unique substring of one transcript
+     line, so the cut is addressed by what was said rather than by an index
+     that would rot the moment the transcript was rebuilt. */
   const BEATS = [
-    ["need an electrician", "where he started — the family trade"],
-    ["there was a teacher", "the teacher who changed it"],
-    ["dream since", "the dream, named"],
-    ["the call came", "the best line in the episode"],
-    ["it's been", "lands it"],
+    ["need an electrician",                "where she started — the family trade"],
+    ["there was a teacher",                "the teacher who changed it"],
+    ["on your first try",                  "applied anyway, against the odds"],
+    ["the call came",                      "the best line in the episode"],
+    ["visor covering",                     "what it was all for"],
   ];
 
   const buildCut = (ghost = true) => {
@@ -31,62 +34,120 @@ const Tour = (() => {
   };
 
   const cleanCut = () => {
+    const before = Store.reelDur();
     let n = 0;
     for (const c of Store.state.reel) {
       const cuts = [...Analysis.stammersIn(c.start, c.end), ...Analysis.slackIn(c)].sort((a, b) => a.start - b.start);
       for (const x of cuts) { Store.omit(c.id, x.start, x.end); n++; }
     }
-    return n;
+    return { n, saved: +(before - Store.reelDur()).toFixed(1) };
   };
+  let cleaned = { n: 0, saved: 0 };
+
+  const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
   /* Each step: what it says, which tool it stands for, where to look, how long
      to dwell, and the state it wants. `apply` must be safe to re-run. */
   const STEPS = [
     { tool: "listCapabilities", args: "{}", ms: 3400, focus: "#logBody", icon: "compass", title: "Gets its bearings",
-      got: "33 tools · 11 read the audio, not the transcript",
+      got: "33 tools · 5 of them read the audio, not the transcript",
       say: "An agent arrives cold and asks what's here.",
       apply() { Store.setTab("transcript"); Store.logTool("listCapabilities", ""); } },
 
     { tool: "findEnergyMoments", args: '{ limit: 18 }', ms: 5200, focus: "#list", icon: "ear", title: "Listens",
-      got: "18 moments · strongest: “isn't that amazing that we did that?” @29:38",
+      report() {
+        const m = Analysis.energyMoments({ limit: 18 });
+        if (!m.length) return "no clear peaks in this recording";
+        const t = m[0].text.trim().replace(/[.,]$/, "");
+        return `${m.length} moments · strongest: “${t.length > 46 ? t.slice(0, 46) + "…" : t}” @${mmss(m[0].startSec)}`;
+      },
       say: "Reads the waveform, not the words — where the voice lifts. No text search can find this.",
       apply() { Store.logTool("findEnergyMoments", "top 18"); Store.setTab("energy"); } },
 
     { tool: "searchTranscript", args: '{ query: "the call came" }', ms: 4200, focus: "#list", icon: "search", title: "Reads",
-      got: "6 lines · best at 18:42",
+      report() {
+        // Exact occurrences, not the fuzzy ranking — Store.search scores every
+        // line that shares a token, so its length is 225 and means nothing.
+        const hits = Analysis.findAll("the call came");
+        return hits.length
+          ? `${hits.length} exact match${hits.length > 1 ? "es" : ""} in 38 minutes · ${mmss(hits[0].startSec)}`
+          : "no exact match — falling back to the ranking";
+      },
       say: "Then searches the text for the story. The best clips sit where both agree.",
       apply() { Store.setTab("transcript"); Store.logTool("searchTranscript", "“the call came”"); Store.setQuery("the call came"); },
       undo() { Store.setQuery(""); } },
 
     { tool: "proposeCut", args: '{ title: "Electrician to astronaut", spans: [5] }', ms: 5400, focus: ".strip", icon: "cards", title: "Proposes",
-      got: "5 pending clips · 31s · drawn across 46% of the episode",
+      report: () => `${Store.state.reel.length} pending clips · ${Math.round(Store.reelDur())}s`
+        + ` · drawn across ${Math.round(Store.spread() * 100)}% of the episode`,
       say: "Five lines, five different places in the hour. Dashed means proposal, not decision.",
       apply() { Store.setQuery(""); buildCut(true); Store.setTab("cands"); } },
 
     { tool: "playReel", args: "{}", ms: 9000, focus: ".stage", icon: "play", title: "Plays it",
-      got: "playing 5 clips…",
+      report: () => `playing ${Store.live().length} clips…`,
       say: "You hear it. That's the only way to judge a cut.",
       apply() { Store.logTool("playReel", `${Store.live().length} clips`); },
       async live() { await Player.playSequence(Store.playSpans()); },
       leave() { Player.stop(); } },
 
     { tool: "checkFlow", args: "{}", ms: 5000, focus: "#list", icon: "check", title: "Checks itself",
-      got: "3 issues · 1 high: the hook opens mid-thought",
+      report() {
+        const x = Analysis.checkFlow();
+        if (!x.length) return "nothing to flag — the cut reads clean";
+        const worst = x.find((i) => i.severity === "high") || x[0];
+        return `${x.length} issue${x.length > 1 ? "s" : ""} · worst is ${worst.severity}: ${worst.kind.replace(/-/g, " ")}`;
+      },
       say: "Weak hook. Dangling pronoun. Join that cuts in mid-flow.",
       apply() { Store.setTab("notes"); Store.logTool("checkFlow", ""); } },
 
     { tool: "cleanUpCut", args: "{}", ms: 5400, focus: ".strip", icon: "broom", title: "Cleans up",
-      got: "5 cuts · 1.6s saved · no real words lost",
+      report: () => `${cleaned.n} cut${cleaned.n === 1 ? "" : "s"} · ${cleaned.saved}s saved · no real words lost`,
       say: "Hesitations and dead air out of the middle. Nothing actually said is lost.",
-      apply() { const n = cleanCut(); Store.logTool("cleanUpCut", `${n} cuts`); } },
+      apply() { cleaned = cleanCut(); Store.logTool("cleanUpCut", `${cleaned.n} cuts`); } },
 
     { tool: "getCutManifest", args: "{}", ms: 5600, focus: ".reel", icon: "doc", title: "Hands it over",
-      got: "9 spans · exact in/out · ffmpeg command",
+      report() {
+        const spans = Store.state.reel.reduce((n, c) => n + Math.max(1, (c.cuts || []).length + 1), 0);
+        return `${spans} spans · exact in/out · ffmpeg command`;
+      },
       say: "Every span to a hundredth of a second, plus an ffmpeg command.",
       apply() { Store.setTab("cands"); Store.logTool("getCutManifest", "json"); } },
   ];
 
+  let reports = [];
   let dock = null, spot = null, at = -1, playing = false, timer = 0, t0 = 0, left = 0, pinned = false, raf = 0, ro = null;
+
+  /* ── presenter mode ──────────────────────────────────────────────────────
+     The demo runs on fixed timers, which is right for someone watching it and
+     impossible to narrate over — you can't talk for 5.2 seconds on cue, eight
+     times, and land it. Presenter mode holds each step until you press → , puts
+     the line you're meant to say on screen at reading size, and counts up so
+     you can see the three-minute limit coming. Everything it shows is the same
+     real tool call; only the pacing changes.
+        ?present   in the URL, or  P  once the demo is open.               */
+  let present = /[?&]present\b/.test(location.search);
+  let clockT0 = 0, clockRaf = 0;
+  const CAP_SEC = 180;                               // the rules' hard ceiling
+
+  function tickClock() {
+    cancelAnimationFrame(clockRaf);
+    const el = dock?.querySelector("#tClock");
+    if (!el || !present) return;
+    const n = Math.floor((performance.now() - clockT0) / 1000);
+    el.textContent = `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
+    el.classList.toggle("warn", n >= CAP_SEC - 30);
+    el.classList.toggle("over", n >= CAP_SEC);
+    clockRaf = requestAnimationFrame(tickClock);
+  }
+
+  function setPresent(on) {
+    present = on;
+    if (!dock) return;
+    dock.classList.toggle("presenting", present);
+    if (present) { pause(); clockT0 = performance.now(); tickClock(); }
+    else cancelAnimationFrame(clockRaf);
+    paintDock();
+  }
 
   /* ── seeking ────────────────────────────────────────────────────────────── */
   // Rebuild from scratch so scrubbing backwards works. Cheap: the whole thing
@@ -98,14 +159,26 @@ const Tour = (() => {
     Store.state.candidates = [];
     Store.state.log = [];
     Store.state.notes = [];
+    // What each step reports is measured from the state it just produced, not
+    // written down in advance. Hardcoded results drift the moment the cut or
+    // the transcript changes, and a demo that quotes numbers it isn't
+    // producing is the one thing this page can't afford to do.
+    reports = [];
     for (let k = 0; k <= i; k++) {
-      try { STEPS[k].apply(); if (k < i) STEPS[k].undo?.(); } catch { /* keep going */ }
+      try {
+        STEPS[k].apply();
+        reports[k] = STEPS[k].report ? STEPS[k].report() : (STEPS[k].got || "");
+        if (k < i) STEPS[k].undo?.();
+      } catch { /* keep going */ }
     }
     at = i;
     Store.emit("reel"); Store.emit("log"); Store.emit("cands");
     paintDock();
     place();
     if (playing) startStep();
+    // Nothing is scheduled in presenter mode, so the step's own action — the
+    // one that actually plays audio — has to be fired here or never.
+    else if (present) STEPS[at].live?.();
   }
 
   function startStep() {
@@ -114,7 +187,7 @@ const Tour = (() => {
     left = s.ms;
     t0 = performance.now();
     s.live?.();
-    timer = setTimeout(() => { at < STEPS.length - 1 ? seek(at + 1) : finish(); }, left);
+    if (!present) timer = setTimeout(() => { at < STEPS.length - 1 ? seek(at + 1) : finish(); }, left);
     tickBar();
   }
 
@@ -131,7 +204,7 @@ const Tour = (() => {
     step();
   }
 
-  const play = () => { if (playing) return; playing = true; t0 = performance.now() - (STEPS[at].ms - left); clearTimeout(timer); timer = setTimeout(() => { at < STEPS.length - 1 ? seek(at + 1) : finish(); }, left); STEPS[at].live?.(); paintDock(); tickBar(); };
+  const play = () => { if (playing || present) return; playing = true; t0 = performance.now() - (STEPS[at].ms - left); clearTimeout(timer); timer = setTimeout(() => { at < STEPS.length - 1 ? seek(at + 1) : finish(); }, left); STEPS[at].live?.(); paintDock(); tickBar(); };
   const pause = () => { if (!playing) return; playing = false; left = Math.max(0, STEPS[at].ms - (performance.now() - t0)); clearTimeout(timer); cancelAnimationFrame(raf); Player.pause(); paintDock(); };
 
   function finish() {
@@ -181,10 +254,10 @@ const Tour = (() => {
   /* ── chrome ─────────────────────────────────────────────────────────────── */
   // What the demo shows being asked. The clipboard prompt below is separate
   // and longer — this one is what reads well on screen.
-  const DEMO_PROMPT = "Find me 60 seconds on how he went from electrician to astronaut. Propose an angle, play it, then clean it up and give me the timestamps.";
+  const DEMO_PROMPT = "Find me 60 seconds on how she went from electrician to astronaut. Propose an angle, play it, then clean it up and give me the timestamps.";
 
   function paintDock() {
-    if (!dock) return;
+    if (!dock || at < 0) return;   // openDock runs before the first seek
     const done = at === STEPS.length - 1 && dock.classList.contains("done");
 
     // the prompt types itself in on the first step, then stays
@@ -204,7 +277,7 @@ const Tour = (() => {
       <li class="${i === at && !done ? "now" : "past"}${pos === 0 ? " newest" : ""}">
         <span class="c-tick">${i === at && !done ? "" : "✓"}</span>
         <code>${s.tool}<em>${s.args || ""}</em></code>
-        <span class="c-got">${i === at && !done ? "" : (s.got || "")}</span>
+        <span class="c-got">${i === at && !done ? "" : (reports[i] || s.got || "")}</span>
       </li>`).join("");
     // newest is at the top, so there is nothing to scroll to
     const turn = dock.querySelector(".td-turn");
@@ -223,8 +296,19 @@ const Tour = (() => {
       <b>Space</b> to hear it.</p>`;
 
     dock.querySelector("#tCount").textContent = `${at + 1} / ${STEPS.length}`;
+    dock.querySelector("#tPresent").classList.toggle("on", present);
+    dock.querySelector("#tClock").hidden = !present;
+
+    // The line to read out loud. It exists for every step either way; in
+    // presenter mode it's the point of the panel, so it gets the room.
+    const say = dock.querySelector("#tSay");
+    say.innerHTML = present
+      ? `<span class="td-cue">${at + 1}. ${STEPS[at].title}</span><p>${STEPS[at].say}</p>
+         <span class="td-adv">${at < STEPS.length - 1 ? "→ when you've said it" : "→ to finish"}</span>`
+      : "";
+
     dock.querySelector("#tPlay").innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
-    dock.querySelector("#tPlay").title = playing ? "Pause" : "Play";
+    dock.querySelector("#tPlay").title = present ? "Replay this step" : playing ? "Pause" : "Play";
     dock.querySelectorAll(".tl-cell").forEach((c, i) => {
       c.classList.toggle("on", i === at);
       c.classList.toggle("past", i < at);
@@ -252,9 +336,13 @@ const Tour = (() => {
         <span class="td-badge">Demo</span>
         <span class="td-note">scripted prompt · real tool calls</span>
         <span class="spacer"></span>
+        <span class="td-clock tnum" id="tClock" title="Elapsed — the rules cap the video at 3:00">0:00</span>
         <span class="td-count tnum" id="tCount"></span>
+        <button class="td-x" id="tPresent" title="Presenter mode (P) — hold each step and show the narration">◉</button>
         <button class="td-x" id="tClose" title="Close">✕</button>
       </div>
+
+      <div class="td-say" id="tSay"></div>
 
       <div class="td-turn">
         <div class="td-you"><span class="td-who">You</span><p id="tPrompt"></p></div>
@@ -270,9 +358,9 @@ const Tour = (() => {
         ${STEPS.map((s, i) => `<button class="tl-cell" data-i="${i}" title="${s.tool}"><i></i></button>`).join("")}
       </div>
       <div class="td-controls">
-        <button class="td-b" id="tPrev" title="Previous">${ICON_PREV}</button>
+        <button class="td-b" id="tPrev" title="Previous (←)">${ICON_PREV}</button>
         <button class="td-b primary" id="tPlay" title="Play">${ICON_PLAY}</button>
-        <button class="td-b" id="tNext" title="Next">${ICON_NEXT}</button>
+        <button class="td-b" id="tNext" title="Next (→)">${ICON_NEXT}</button>
         <span class="spacer"></span>
         <button class="td-b wide" id="tReplay" title="Start again">${ICON_REPLAY}<span>Replay</span></button>
       </div>`;
@@ -285,7 +373,11 @@ const Tour = (() => {
     } else requestAnimationFrame(() => dock.classList.add("in"));
 
     dock.querySelector("#tClose").onclick = close;
-    dock.querySelector("#tPlay").onclick = () => (playing ? pause() : (dock.classList.remove("done"), play()));
+    dock.querySelector("#tPresent").onclick = () => setPresent(!present);
+    dock.querySelector("#tPlay").onclick = () => {
+      if (present) return void STEPS[at].live?.();      // replay this beat's audio
+      playing ? pause() : (dock.classList.remove("done"), play());
+    };
     dock.querySelector("#tPrev").onclick = () => { pause(); seek(at - 1); };
     dock.querySelector("#tNext").onclick = () => { pause(); seek(at + 1); };
     dock.querySelector("#tReplay").onclick = () => { dock.classList.remove("done"); pause(); seek(0); play(); };
@@ -313,6 +405,8 @@ const Tour = (() => {
     };
 
     addEventListener("resize", place);
+    addEventListener("keydown", onKey);
+    dock.classList.toggle("presenting", present);
 
     if (window.ResizeObserver) {
       let pending = 0;
@@ -324,7 +418,21 @@ const Tour = (() => {
     }
   }
 
+  // Arrows drive the demo whenever it's open — the whole point of presenter
+  // mode is that your hand can stay on one key while you talk.
+  function onKey(e) {
+    if (!dock || e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t instanceof HTMLElement && t.matches("input,textarea")) return;
+    if (e.key === "ArrowRight") { e.preventDefault(); pause(); at < STEPS.length - 1 ? seek(at + 1) : finish(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); pause(); seek(at - 1); }
+    else if (e.key === "p" || e.key === "P") { e.preventDefault(); setPresent(!present); }
+    else if (e.key === "Escape") close();
+  }
+
   function close() {
+    removeEventListener("keydown", onKey);
+    cancelAnimationFrame(clockRaf);
     ro?.disconnect(); ro = null;
     clearTimeout(timer); cancelAnimationFrame(raf);
     playing = false;
@@ -340,11 +448,11 @@ const Tour = (() => {
     localStorage.setItem(SEEN, "1");
     openDock();
     seek(0);
-    play();
+    present ? setPresent(true) : play();
   }
 
   /* ── welcome ────────────────────────────────────────────────────────────── */
-  const PROMPT = "This page exposes WebMCP tools for cutting a podcast short. Call listCapabilities first, then find me 60 seconds on how he went from electrician to astronaut — propose two different angles, play the better one, then clean it up and give me the timestamps.";
+  const PROMPT = "This page exposes WebMCP tools for cutting a podcast short. Call listCapabilities first, then find me 60 seconds on how she went from electrician to astronaut — propose two different angles, play the better one, then clean it up and give me the timestamps.";
 
   function envLine() {
     const mc = !!(document.modelContext || navigator.modelContext);
@@ -352,6 +460,32 @@ const Tour = (() => {
     if (mc) return { cls: "good", html: "<b>This browser has WebMCP — the tools are live.</b> If this is ChatGPT's browser, choose <b>GPT-5.6 Sol</b> or <b>Terra</b> in the model menu (earlier models don't see site tools), then check <b>Site tools</b> in the address bar. Then just ask for a cut." };
     if (v >= 149) return { cls: "", html: `<b>You're on Chrome ${v}, which supports this.</b> Enable <code>chrome://flags/#enable-webmcp-testing</code> and reload — or watch the demo, which runs the real tools either way.` };
     return { cls: "", html: "<b>This browser can't run WebMCP yet.</b> It needs ChatGPT's browser, or Chrome&nbsp;149+ with a flag. The demo runs the real tools either way." };
+  }
+
+  /* The thesis, drawn rather than described: the whole episode as 547 ticks,
+     and the five lines the demo is about to pull out of it. Every number and
+     every position is read from the real transcript — if the material changes,
+     the picture changes with it. */
+  function heroDiagram() {
+    const D = Store.state.source.durationSec || 1;
+    const segs = Store.state.segments || [];
+    const spans = BEATS.map(([q]) => seg(q)).filter(Boolean);
+    if (!segs.length || !spans.length) return "";
+    const total = spans.reduce((n, x) => n + (x.end - x.start), 0);
+    const pct = (t) => ((t / D) * 100).toFixed(3);
+    return `<div class="tour-hero">
+      <div class="th-bar">
+        <div class="th-ticks">${segs.map((x) => `<i style="left:${pct(x.start)}%"></i>`).join("")}</div>
+        ${spans.map((x) => `<b style="left:${pct(x.start)}%;width:${Math.max(0.45, +pct(x.end - x.start))}%"></b>`).join("")}
+      </div>
+      <div class="th-legend">
+        <span><em>${segs.length}</em> lines</span><span class="th-to">→</span>
+        <span><em>${spans.length}</em> clips</span><span class="th-to">→</span>
+        <span><em>${Math.round(total)}s</em></span>
+        <span class="spacer"></span>
+        <span class="th-scale">${Math.round(D / 60)} minutes, end to end</span>
+      </div>
+    </div>`;
   }
 
   function welcome() {
@@ -364,6 +498,7 @@ const Tour = (() => {
         <h2>A 38-minute podcast holds about eight lines that, in the right order, are a story.</h2>
         <p>Finding them is a search problem with no correct answer — only taste — and you can't judge a candidate without hearing it.
            Cutroom gives an AI agent the tools to do the finding, and keeps you doing the judging.</p>
+        ${heroDiagram()}
         <div class="tour-status ${e.cls}">${e.html}</div>
         <div class="tour-actions">
           <button class="tour-go" id="tourGo">Watch it work<span class="tour-sub">about a minute · real tool calls</span></button>
@@ -377,6 +512,14 @@ const Tour = (() => {
       gsap.set(wrap, { opacity: 0 }); gsap.set(card, { y: 22, opacity: 0 });
       gsap.to(wrap, { opacity: 1, duration: .32, ease: "power2.out" });
       gsap.to(card, { y: 0, opacity: 1, duration: .5, ease: "power3.out", delay: .06 });
+      // The hour sweeps in as one tween on the container — 547 individually
+      // staggered ticks would be the same picture at forty times the cost.
+      const ticks = wrap.querySelector(".th-ticks");
+      const marks = wrap.querySelectorAll(".th-bar b");
+      if (ticks) gsap.fromTo(ticks, { clipPath: "inset(0 100% 0 0)" },
+        { clipPath: "inset(0 0% 0 0)", duration: .85, ease: "power2.inOut", delay: .34 });
+      if (marks.length) gsap.from(marks, { scaleY: 0, opacity: 0, duration: .5,
+        ease: "back.out(2.2)", stagger: .075, delay: 1.02 });
       wrap.classList.add("in");
     } else requestAnimationFrame(() => wrap.classList.add("in"));
     const shut = () => {
