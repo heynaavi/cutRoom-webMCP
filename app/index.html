@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cutroom — find the short inside the hour</title>
+<meta name="description" content="A WebMCP surface for cutting podcast shorts. Humans bring the taste; agents bring the reach." />
+<link rel="stylesheet" href="css/cutroom.css" />
+</head>
+<body>
+<div class="shell">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">Cut<em>room</em></span>
+      <span class="brand-sub">WebMCP</span>
+    </div>
+    <div class="src-chip" id="srcChip">
+      <b id="srcTitle">Loading…</b>
+      <span class="mono tnum" id="srcDur"></span>
+    </div>
+    <span class="spacer"></span>
+    <span class="agent-dot" id="agentDot" title="WebMCP tool registration status"><i></i><span id="agentLabel">no agent</span></span>
+    <button class="tbtn" id="themeBtn" title="Toggle theme">Dark</button>
+  </header>
+
+  <div class="main">
+    <!-- ── LEFT: stage, transport, provenance, reel, chips ── -->
+    <div class="left">
+      <section class="stage">
+        <div class="stage-frame"><div class="stage-card">
+          <span class="stage-label">Preview</span>
+          <span class="stage-clipno" id="stageClip"></span>
+          <div class="caption idle" id="caption">
+            Pick lines from the transcript, or let an agent propose a cut. Press <b>Space</b> to play the reel.
+          </div>
+          <div class="wave" id="wave"></div>
+        </div></div>
+
+        <div class="transport">
+          <button class="play-btn" id="playBtn" aria-label="Play reel">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <span class="t-time tnum"><b id="tNow">0:00</b> / <span id="tTot">0:00</span></span>
+          <div class="scrub" id="scrub">
+            <div class="scrub-track"><div class="scrub-fill" id="scrubFill"></div></div>
+            <div class="scrub-head" id="scrubHead"></div>
+          </div>
+        </div>
+
+        <div class="prov">
+          <div class="prov-head">Where it came from <b id="provSpread"></b></div>
+          <div class="prov-bar" id="provBar"><div class="prov-play" id="provPlay"></div></div>
+          <div class="prov-scale"><span>0:00</span><span id="provEnd"></span></div>
+        </div>
+      </section>
+
+      <section class="reel">
+        <div class="reel-head">
+          <span class="reel-title">The reel</span>
+          <div class="budget">
+            <span class="budget-num tnum" id="budgetNum"><b>0s</b> / 60s</span>
+            <div class="budget-bar"><div class="budget-fill" id="budgetFill"></div></div>
+          </div>
+          <span class="spacer"></span>
+          <button class="tbtn" id="clearBtn">Clear</button>
+        </div>
+        <div class="strip" id="strip"></div>
+      </section>
+
+      <nav class="chips" id="chips"><span class="chips-label">Steer</span></nav>
+    </div>
+
+    <!-- ── RIGHT: transcript / starred / candidates + agent log ── -->
+    <aside class="right">
+      <div class="rail">
+        <div class="rail-tabs" id="railTabs">
+          <button class="rtab on" data-tab="transcript">Transcript<span class="count" id="cTranscript"></span></button>
+          <button class="rtab" data-tab="starred">Starred<span class="count" id="cStarred"></span></button>
+          <button class="rtab" data-tab="cands">Cuts<span class="count" id="cCands"></span></button>
+        </div>
+        <div class="search" id="searchWrap">
+          <input class="search-in" id="search" placeholder="Search 38 minutes…" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="list" id="list"></div>
+      </div>
+
+      <div class="log">
+        <div class="log-head">Agent activity</div>
+        <div class="log-body" id="logBody">
+          <div class="log-empty" id="logEmpty">
+            No agent connected. Open this page in ChatGPT's browser or Chrome&nbsp;149+ with WebMCP enabled — every tool call it makes will appear here.
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<audio id="audio" preload="auto" src="media/episode.m4a"></audio>
+
+<script src="js/store.js"></script>
+<script src="js/ingest.js"></script>
+<script src="js/starters.js"></script>
+<script src="js/player.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/tools.js"></script>
+</body>
+</html>

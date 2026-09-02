@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "cutroom", "runtimeExecutable": "npx", "runtimeArgs": ["-y", "serve", "app", "-l", "4321", "--no-clipboard"], "port": 4321 }
+  ]
+}
