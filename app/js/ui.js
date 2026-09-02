@@ -128,6 +128,7 @@ function renderReel() {
                    draggable="true" data-id="${c.id}" data-i="${i}">
         <div class="clip-top">
           <span class="clip-n">${c.ghost ? "PROPOSED" : String(i + 1).padStart(2, "0")}</span>
+          ${c.role ? `<span class="role role-${c.role}">${c.role}</span>` : ""}
           <span class="clip-dur tnum">${dur(d)} · ${ts(c.start)}</span>
         </div>
         <div class="clip-text">${esc(c.text)}</div>
@@ -219,6 +220,44 @@ function renderList() {
   $("#cCands").textContent = S.candidates.length ? ` ${S.candidates.length}` : "";
   $("#searchWrap").style.display = S.tab === "transcript" ? "" : "none";
 
+  if (S.tab === "energy") {
+    const m = Analysis.energyMoments({ limit: 18 });
+    list.innerHTML = m.length
+      ? `<div class="energy-lede">Where the voice lifts, read from the audio rather than the words. The strongest moment in an hour is rarely the smartest sentence.</div>` +
+        m.map((x) => `
+        <div class="seg" data-energy="${x.startSec},${x.endSec}">
+          <span class="seg-ts tnum" data-act="eseek">${ts(x.startSec)}</span>
+          <div class="seg-body">
+            <div class="lift"><span class="lift-bar" style="width:${Math.min(100, (x.lift - 1) * 62).toFixed(0)}%"></span><span class="lift-n tnum">×${x.lift.toFixed(2)}</span></div>
+            <div class="seg-text">${esc(x.text)}</div>
+          </div>
+          <div class="seg-acts">
+            <button class="cbtn" data-act="epreview" title="Hear it">${ICON.ear}</button>
+            <button class="cbtn" data-act="eadd" title="Add to reel">${ICON.plus}</button>
+          </div>
+        </div>`).join("")
+      : `<div class="empty">No clear energy peaks — this recording is fairly level throughout.</div>`;
+    return;
+  }
+
+  if (S.tab === "notes") {
+    const issues = Analysis.checkFlow();
+    $("#cNotes").textContent = issues.length ? ` ${issues.length}` : "";
+    list.innerHTML = Store.state.reel.length
+      ? (issues.length
+        ? `<div class="energy-lede">What an editor would flag before calling this done.</div>` +
+          issues.map((x) => `
+          <div class="issue sev-${x.severity}" ${x.clipIndex !== null ? `data-issue-clip="${x.clipIndex}"` : ""}>
+            <div class="issue-top"><span class="issue-kind">${esc(x.kind.replace(/-/g, " "))}</span>
+              <span class="issue-sev">${x.severity}</span></div>
+            <div class="issue-detail">${esc(x.detail)}</div>
+            <div class="issue-fix">${esc(x.fix)}</div>
+          </div>`).join("")
+        : `<div class="empty"><b>The cut reads clean.</b><br/>The hook stands alone, every clip resolves, the joins land in pauses, and it's inside budget.</div>`)
+      : `<div class="empty">Build a cut and this becomes an editor's read on it — weak hooks, dangling references, hard joins, budget.</div>`;
+    return;
+  }
+
   if (S.tab === "cands") {
     list.innerHTML = S.candidates.length
       ? `<div class="cands">${S.candidates.map((c, i) => `
@@ -283,6 +322,21 @@ function wireRail() {
       const n = Starters.suggest();
       Store.logTool("suggest", `${n} local cuts`);
       toast(n ? `${n} cuts — press 1, 2 or 3 to hear them` : "Not enough material to build a cut");
+      return;
+    }
+    const er = e.target.closest("[data-energy]");
+    if (er) {
+      const [a, b] = er.dataset.energy.split(",").map(Number);
+      const act = e.target.closest("[data-act]")?.dataset.act;
+      if (act === "eadd") { Store.addSpan({ start: a, end: b }); toast("Added to reel"); }
+      else if (act === "eseek") Player.playFrom(a);
+      else Player.playSpan(a, b);
+      return;
+    }
+    const ic = e.target.closest("[data-issue-clip]");
+    if (ic) {
+      const c = Store.state.reel[+ic.dataset.issueClip];
+      if (c) Player.playSpan(c.start, c.end, c.id);
       return;
     }
     const row = e.target.closest("[data-seg]"); if (!row) return;
@@ -547,7 +601,8 @@ async function boot() {
 
   Store.on((what) => {
     if (what === "reel" || what === "load") { renderReel(); renderChips(); renderProv(Player.time); renderList(); }
-    if (what === "starred" || what === "tab" || what === "query" || what === "cands") renderList();
+    if (what === "starred" || what === "tab" || what === "query" || what === "cands" || what === "notes") renderList();
+    if (what === "reel" && (Store.state.tab === "notes" || Store.state.tab === "energy")) renderList();
     if (what === "log") renderLog();
   });
   Player.on("time", (t) => paint(t));

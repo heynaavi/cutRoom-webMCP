@@ -37,6 +37,20 @@ Notes on the calling convention, learned against Chrome 151:
 - `trimClip` — nudge a clip's in/out by fractions of a second; snaps to word
   boundaries so you never cut mid-syllable. This is most of what makes a cut
   tight, and it is the tool a DOM-driving agent simply cannot reach.
+- `findEnergyMoments` — **read the audio, not the words.** Returns the passages
+  where the speaker's voice lifts above their own baseline. The best clip in an
+  hour is rarely the smartest sentence; it is the one with the most life in it,
+  and no transcript search can find that. Use it alongside searchTranscript:
+  search finds the topic, this finds the delivery.
+- `checkFlow` — an editor's read on the cut as it stands: hooks that open
+  mid-thought, clips starting on a pronoun with no antecedent, sentences sheared
+  off, joins that cut in mid-flow, over-budget, everything from one stretch.
+  Call it before you tell them it's done.
+- `snapToBreath` — move a cut point to the nearest natural pause. A splice on
+  top of a word sounds broken however good the line is.
+- `setClipRole` — tag clips hook / setup / turn / payoff / button. getReelState
+  then reports which roles are missing; a cut with no payoff is the commonest
+  way a short fails.
 - `getCandidates` — every angle proposed so far and how they reacted. Check it
   before proposing again; repeating a rejected angle wastes their time.
 - `exportCut` — hand them the finished cut as EDL, JSON or a readable script.
@@ -50,11 +64,14 @@ Notes on the calling convention, learned against Chrome 151:
 
 ### The loop that works
 
-1. `getSource`, then `searchTranscript` for two or three different angles.
-2. `proposeCut` for each — contrasting stories, not one "best" attempt.
+1. `getSource`. Then BOTH `searchTranscript` (topic) and `findEnergyMoments`
+   (delivery) — the strongest cuts usually come from where those two overlap.
+2. `proposeCut` for two or three contrasting angles, not one "best" attempt.
+   Tag the roles with `setClipRole` so the story has a shape.
 3. `playReel`, then ask what they'd change.
 4. `getReelState` to read their votes, notes and mutes.
-5. `trimClip` / `reorderClip` to act on it. `undoLastChange` if you overshoot.
+5. `checkFlow` and fix what it finds — `trimClip`, `snapToBreath`, `reorderClip`.
+   `undoLastChange` if you overshoot.
 6. `exportCut` when they sound happy.
 
 ### How to be useful here

@@ -53,7 +53,32 @@ that responds to *that* is reading taste, not executing a task.
 | `addSpan` | Add one line, surgically |
 | `removeClip` / `reorderClip` | Edit the cut — order is most of the story |
 | `playReel` | Play the cut out loud so the human can judge it |
+| `findEnergyMoments` | **Reads the audio**: where the voice lifts above its own baseline |
+| `checkFlow` | An editor's read — weak hook, dangling reference, hard join, budget |
+| `snapToBreath` | Move a cut point to the nearest natural pause |
+| `setClipRole` | hook / setup / turn / payoff / button — the story's shape |
+| `trimClip` | Nudge in/out by fractions of a second, snapped to word boundaries |
+| `getCandidates` | Every angle proposed, and how the human reacted |
+| `exportCut` | EDL / JSON / script, so the cut can leave the browser |
+| `undoLastChange` | An agent can replace the whole reel in one call |
 | `loadTranscript` | Load *their* recording — the agent supplies the transcript |
+
+## Why the audio matters
+
+Editors will tell you the most clippable moment in an hour is rarely the
+smartest sentence — it's the one with the most life in it. A transcript cannot
+show you that. Cutroom keeps an RMS envelope of the real audio, so
+`findEnergyMoments` can hand an agent the passages where someone's voice lifts
+above their own baseline:
+
+```
+lift 2.61 @29:38  "I mean, isn't that amazing that we did that?"
+lift 2.24 @31:47  "Are you going to have a giggle fit?"
+```
+
+Searching the transcript for "amazing" would never rank those. The signal is in
+the delivery. The same envelope drives `snapToBreath`, because a splice landing
+on top of a word sounds broken however good the line is.
 
 ## Three ways material gets in
 

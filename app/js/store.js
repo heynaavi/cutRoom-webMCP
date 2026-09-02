@@ -111,7 +111,7 @@ const Store = (() => {
     addSpan({ start, end, text, why, ghost = false, at = null }) {
       snapshot("add clip");
       const clip = { id: nid(), start, end, text: text || api.textBetween(start, end),
-                     muted: false, ghost, why: why || null, vote: null, note: null };
+                     muted: false, ghost, why: why || null, vote: null, note: null, role: null };
       if (at == null || at >= state.reel.length) state.reel.push(clip);
       else state.reel.splice(Math.max(0, at), 0, clip);
       emit("reel");
@@ -193,6 +193,15 @@ const Store = (() => {
       return c;
     },
 
+    /* What job this clip does in the story. */
+    setRole(id, role) {
+      const c = state.reel.find((x) => x.id === id);
+      if (!c) return null;
+      c.role = role;
+      emit("reel");
+      return c;
+    },
+
     /* A reaction on one clip — the most specific taste signal there is. */
     react(id, vote, note) {
       const c = state.reel.find((x) => x.id === id);
@@ -230,7 +239,7 @@ const Store = (() => {
       c.appliedAt = Date.now();
       state.reel = c.spans.map((s) => ({
         id: nid(), start: s.start, end: s.end, text: s.text,
-        muted: false, ghost: asGhost, why: s.why || null, vote: null, note: null,
+        muted: false, ghost: asGhost, why: s.why || null, vote: null, note: null, role: s.role || null,
       }));
       state.activeCand = id;
       emit("reel"); emit("cands");
@@ -272,7 +281,7 @@ const Store = (() => {
           index: i, startSec: +c.start.toFixed(2), endSec: +c.end.toFixed(2),
           durationSec: +(c.end - c.start).toFixed(2),
           text: c.text, muted: !!c.muted, pending: !!c.ghost, why: c.why,
-          humanVote: c.vote, humanNote: c.note,
+          humanVote: c.vote, humanNote: c.note, role: c.role || null,
         })),
         durationSec: +reelDur().toFixed(1),
         targetSec: state.targetSec,
@@ -286,6 +295,10 @@ const Store = (() => {
         keptCount: state.reel.filter((c) => !c.ghost).length,
         mutedCount: state.reel.filter((c) => c.muted).length,
         canUndo: undoStack.length > 0,
+        // The shape of the story, not just its length. A cut with no payoff is
+        // the commonest way a short fails.
+        rolesPresent: [...new Set(state.reel.filter((c) => !c.muted).map((c) => c.role).filter(Boolean))],
+        rolesMissing: ["hook", "turn", "payoff"].filter((r) => !state.reel.some((c) => !c.muted && c.role === r)),
       };
     },
   };

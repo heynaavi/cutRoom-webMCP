@@ -262,6 +262,83 @@
       },
     },
     {
+      name: "findEnergyMoments",
+      description: "Find where the speaker's voice LIFTS — the passages carrying the most energy relative to their own baseline. This reads the actual audio, not the transcript, so it surfaces things no text search can: someone getting animated, a laugh, a moment of real feeling. The best clip in an hour is usually not the smartest sentence, it's the one with the most life in it. Use this alongside searchTranscript, not instead of it: search finds the topic, this finds the delivery. `lift` is how far above their normal level that passage sits.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "How many moments to return (default 12)." },
+          minSec: { type: "number", description: "Shortest moment worth returning." },
+          maxSec: { type: "number", description: "Longest moment worth returning." },
+        },
+      },
+      async execute({ limit = 12, minSec = 2.5, maxSec = 14 }) {
+        Store.logTool("findEnergyMoments", `top ${limit}`);
+        const m = Analysis.energyMoments({ limit, minSec, maxSec });
+        if (!m.length) return note("No clear energy peaks found — this recording is fairly level throughout.");
+        return ok(m);
+      },
+    },
+    {
+      name: "checkFlow",
+      description: "Review the cut as an editor would and report what's wrong with it: a hook that starts mid-thought, a clip opening on a pronoun with nothing to point at, sentences sheared off, joins that land on speech instead of in a pause, over-budget, or every clip drawn from one stretch. Call this before telling the human the cut is done — it catches the things that make a short feel broken even when every line is good. Each issue names the clip and suggests the fix.",
+      inputSchema: { type: "object", properties: {} },
+      async execute() {
+        Store.logTool("checkFlow", "");
+        const issues = Analysis.checkFlow();
+        if (!issues.length) return note("The cut reads clean: the hook stands alone, every clip resolves, the joins land in pauses, and it's inside budget.");
+        return ok({ issueCount: issues.length, issues });
+      },
+    },
+    {
+      name: "snapToBreath",
+      description: "Move a clip's in and out points to the nearest natural pause, using the audio rather than the transcript. A splice that lands on top of a word sounds broken however good the line is; one that lands in a breath sounds deliberate. Use it after trimClip, or whenever checkFlow reports a hard join.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          index: { type: "number", description: "Clip position from getReelState (0-based)." },
+          edge: { type: "string", enum: ["in", "out", "both"], description: "Which end to move. Defaults to both." },
+        },
+        required: ["index"],
+      },
+      async execute({ index, edge = "both" }) {
+        const c = Store.state.reel[index];
+        if (!c) return note(`No clip at index ${index}.`);
+        const inB = edge !== "out" ? Analysis.nearestBreath(c.start) : null;
+        const outB = edge !== "in" ? Analysis.nearestBreath(c.end) : null;
+        if (inB === null && outB === null) return note(`No pause close enough to clip ${index + 1}'s edges — the speech runs continuously there.`);
+        Store.logTool("snapToBreath", `#${index + 1} ${edge}`);
+        const r = Store.trim(c.id, {
+          headSec: inB !== null ? inB - c.start : 0,
+          tailSec: outB !== null ? outB - c.end : 0,
+          snap: false,
+        });
+        if (!r) return note("That would leave the clip too short.");
+        return note(`Clip ${index + 1} now cuts on breath — ${(r.end - r.start).toFixed(1)}s: “${r.text.slice(0, 80)}”`);
+      },
+    },
+    {
+      name: "setClipRole",
+      description: "Tag a clip with the job it does in the story: hook (earns the first three seconds), setup (gives the context the payoff needs), turn (the moment it changes), payoff (the thing worth staying for), or button (the line that lets it end). The reel then shows the shape of the story rather than a list of clips, and getReelState reports which roles are missing — a cut with no payoff is the most common way a short fails.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          index: { type: "number" },
+          role: { type: "string", enum: ["hook", "setup", "turn", "payoff", "button", "none"] },
+        },
+        required: ["index", "role"],
+      },
+      async execute({ index, role }) {
+        const c = Store.state.reel[index];
+        if (!c) return note(`No clip at index ${index}.`);
+        Store.logTool("setClipRole", `#${index + 1} → ${role}`);
+        Store.setRole(c.id, role === "none" ? null : role);
+        const have = [...new Set(Store.state.reel.map((x) => x.role).filter(Boolean))];
+        const missing = ["hook", "turn", "payoff"].filter((r) => !have.includes(r));
+        return note(`Clip ${index + 1} is the ${role}.` + (missing.length ? ` Still missing: ${missing.join(", ")}.` : " The arc is complete."));
+      },
+    },
+    {
       name: "playReel",
       description: "Play the current cut out loud for the human, so they can judge it. Do this after proposing — a cut nobody hears is worthless — then ask what they'd change.",
       inputSchema: {

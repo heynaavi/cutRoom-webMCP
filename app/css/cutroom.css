@@ -409,3 +409,44 @@ body.dropping::after {
 }
 
 .play-btn svg, .cbtn svg { pointer-events:none; }
+
+/* ── narrative role badges ─────────────────────────────────────────────────── */
+.role {
+  font-family:var(--f-mono); font-size:8.5px; letter-spacing:.1em; text-transform:uppercase;
+  padding:2px 6px; border-radius:100px; background:var(--surface-2); color:var(--muted);
+}
+.role-hook   { background:rgba(196,88,47,.16);  color:var(--accent); }
+.role-turn   { background:rgba(179,113,31,.18); color:var(--warn); }
+.role-payoff { background:rgba(85,122,74,.18);  color:var(--positive); }
+.role-setup, .role-button { background:var(--surface-2); color:var(--muted); }
+
+/* ── energy tab ────────────────────────────────────────────────────────────── */
+.energy-lede {
+  padding:11px 10px 13px; font-size:12px; line-height:1.5; color:var(--muted);
+  border-bottom:1px solid var(--hairline-2); margin-bottom:4px;
+}
+.lift { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.lift-bar { height:3px; border-radius:2px; background:var(--accent); min-width:6px; }
+.lift-n { font-size:9.5px; color:var(--faint); flex:none; }
+
+/* ── editor's notes ────────────────────────────────────────────────────────── */
+.issue {
+  padding:10px 11px; margin:0 2px 7px; border-radius:var(--r-sm);
+  background:var(--bg); border:1px solid var(--hairline); border-left-width:3px; cursor:pointer;
+  transition:border-color .14s, transform .12s;
+}
+.issue:hover { transform:translateX(1px); border-color:var(--accent); }
+.issue.sev-high   { border-left-color:var(--danger); }
+.issue.sev-medium { border-left-color:var(--warn); }
+.issue.sev-low    { border-left-color:var(--faint); }
+.issue-top { display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
+.issue-kind {
+  font-family:var(--f-mono); font-size:9.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--text-2);
+}
+.issue-sev {
+  margin-left:auto; font-family:var(--f-mono); font-size:8.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint);
+}
+.issue-detail { font-size:12.5px; line-height:1.45; color:var(--text-2); }
+.issue-fix { font-size:11.5px; line-height:1.4; color:var(--muted); font-style:italic; margin-top:5px; }
