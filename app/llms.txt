@@ -9,6 +9,14 @@
 Live: https://cutroom-webmcp.vercel.app/
 Source: https://github.com/heynaavi/cutRoom-webMCP (MIT)
 
+## Getting the tools to show up in ChatGPT's browser
+
+Site tools are only wired into **GPT-5.6 Sol and GPT-5.6 Terra**. On earlier
+models the agent reads this page as pixels, describes the buttons, and says it
+can't click — it never sees the tool list. Switch model, then confirm
+**Site tools** in the address bar lists them (and that
+Settings › Browser › Permissions › Enable site tools is on).
+
 ## If you are an agent visiting this page
 
 Call `listCapabilities` first — it's cheaper than reading every description and

@@ -151,18 +151,20 @@ const Tour = (() => {
     let y = t.top + t.height / 2 - d.height / 2;
     y = Math.max(pad, Math.min(window.innerHeight - d.height - pad, y));
 
-    dock.style.left = `${Math.round(x)}px`;
-    dock.style.top = `${Math.round(y)}px`;
+    if (window.gsap) gsap.to(dock, { left: Math.round(x), top: Math.round(y), duration: .55, ease: "power3.out", overwrite: "auto" });
+    else { dock.style.left = `${Math.round(x)}px`; dock.style.top = `${Math.round(y)}px`; }
 
     if (spot) {
-      spot.style.left = `${t.left - 4}px`; spot.style.top = `${t.top - 4}px`;
-      spot.style.width = `${t.width + 8}px`; spot.style.height = `${t.height + 8}px`;
+      const to = { left: t.left - 4, top: t.top - 4, width: t.width + 8, height: t.height + 8 };
+      if (window.gsap) gsap.to(spot, { ...to, duration: .6, ease: "power3.inOut", overwrite: "auto" });
+      else Object.assign(spot.style, Object.fromEntries(Object.entries(to).map(([k, v]) => [k, `${v}px`])));
     }
   }
 
   /* ── chrome ─────────────────────────────────────────────────────────────── */
   function paintDock() {
     if (!dock) return;
+    if (window.gsap) gsap.fromTo(dock.querySelector(".td-body"), { y: 6, opacity: .35 }, { y: 0, opacity: 1, duration: .38, ease: "power2.out", overwrite: "auto" });
     const s = STEPS[at], last = at === STEPS.length - 1 && !playing && dock.classList.contains("done");
     dock.querySelector("#tIcon").innerHTML = last ? STEP_ICON.check : (STEP_ICON[s.icon] || "");
     dock.querySelector("#tTitle").textContent = last ? "That's the loop" : s.title;
@@ -232,7 +234,11 @@ const Tour = (() => {
         <button class="td-b wide" id="tReplay" title="Start again">${ICON_REPLAY}<span>Replay</span></button>
       </div>`;
     document.body.appendChild(dock);
-    requestAnimationFrame(() => dock.classList.add("in"));
+    if (window.gsap) {
+      gsap.set(dock, { y: 18, opacity: 0, scale: .985 });
+      dock.classList.add("in");
+      gsap.to(dock, { y: 0, opacity: 1, scale: 1, duration: .5, ease: "power3.out", delay: .05 });
+    } else requestAnimationFrame(() => dock.classList.add("in"));
 
     dock.querySelector("#tClose").onclick = close;
     dock.querySelector("#tPlay").onclick = () => (playing ? pause() : (dock.classList.remove("done"), play()));
@@ -289,7 +295,7 @@ const Tour = (() => {
   function envLine() {
     const mc = !!(document.modelContext || navigator.modelContext);
     const v = +(/Chrome\/(\d+)/.exec(navigator.userAgent)?.[1] || 0);
-    if (mc) return { cls: "good", html: "<b>This browser has WebMCP.</b> The tools are live — ask your agent for a cut and watch the ledger fill." };
+    if (mc) return { cls: "good", html: "<b>This browser has WebMCP — the tools are live.</b> If this is ChatGPT's browser, choose <b>GPT-5.6 Sol</b> or <b>Terra</b> in the model menu (earlier models don't see site tools), then check <b>Site tools</b> in the address bar. Then just ask for a cut." };
     if (v >= 149) return { cls: "", html: `<b>You're on Chrome ${v}, which supports this.</b> Enable <code>chrome://flags/#enable-webmcp-testing</code> and reload — or watch the demo, which runs the real tools either way.` };
     return { cls: "", html: "<b>This browser can't run WebMCP yet.</b> It needs ChatGPT's browser, or Chrome&nbsp;149+ with a flag. The demo runs the real tools either way." };
   }
@@ -312,8 +318,20 @@ const Tour = (() => {
         <button class="tour-copy" id="tourCopy">Copy a prompt for your agent</button>
       </div>`;
     document.body.appendChild(wrap);
-    requestAnimationFrame(() => wrap.classList.add("in"));
-    const shut = () => { wrap.classList.remove("in"); setTimeout(() => wrap.remove(), 320); localStorage.setItem(SEEN, "1"); };
+    const card = wrap.querySelector(".tour-card");
+    if (window.gsap) {
+      gsap.set(wrap, { opacity: 0 }); gsap.set(card, { y: 22, opacity: 0 });
+      gsap.to(wrap, { opacity: 1, duration: .32, ease: "power2.out" });
+      gsap.to(card, { y: 0, opacity: 1, duration: .5, ease: "power3.out", delay: .06 });
+      wrap.classList.add("in");
+    } else requestAnimationFrame(() => wrap.classList.add("in"));
+    const shut = () => {
+      localStorage.setItem(SEEN, "1");
+      if (window.gsap) {
+        gsap.to(card, { y: 12, opacity: 0, duration: .26, ease: "power2.in" });
+        gsap.to(wrap, { opacity: 0, duration: .3, ease: "power2.in", delay: .04, onComplete: () => wrap.remove() });
+      } else { wrap.classList.remove("in"); setTimeout(() => wrap.remove(), 320); }
+    };
     wrap.querySelector("#tourSkip").onclick = shut;
     wrap.querySelector("#tourGo").onclick = () => { shut(); setTimeout(run, 340); };
     wrap.querySelector("#tourCopy").onclick = async (ev) => {

@@ -19,7 +19,8 @@
     {
       name: "getSource",
       description: "Describe the loaded recording: title, duration, credit, and how many transcript lines it has. Call this first to know what you are cutting.",
-      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: true },
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
       async execute() {
         Store.logTool("getSource", "");
         const s = Store.state.source;
@@ -29,6 +30,7 @@
     {
       name: "searchTranscript",
       description: "Find candidate lines anywhere in the recording. Returns transcript lines with their exact start/end seconds, which you pass to addSpan or proposeCut. Search by topic, phrase, or emotion — e.g. 'self doubt', 'the moment he got the call', 'rejection'. Use minSec/maxSec to filter by line length so you only get lines that can stand alone in a short.",
+      annotations: { readOnlyHint: true },
       inputSchema: {
         type: "object",
         properties: {
@@ -37,6 +39,7 @@
           minSec: { type: "number", description: "Only lines at least this long." },
           maxSec: { type: "number", description: "Only lines at most this long." },
         },
+        additionalProperties: false,
         required: ["query"],
       },
       async execute({ query, limit = 25, minSec = 0, maxSec = 1e9 }) {
@@ -48,12 +51,14 @@
     {
       name: "readTranscript",
       description: "Read a stretch of the transcript in order, to understand context around a moment. Prefer searchTranscript when hunting; use this to check what comes before or after a line you like.",
+      annotations: { readOnlyHint: true },
       inputSchema: {
         type: "object",
         properties: {
           fromSec: { type: "number", description: "Start of the window, in seconds." },
           toSec: { type: "number", description: "End of the window, in seconds." },
         },
+        additionalProperties: false,
         required: ["fromSec", "toSec"],
       },
       async execute({ fromSec, toSec }) {
@@ -66,7 +71,8 @@
     {
       name: "getReelState",
       description: "See the current cut AND every signal the human has given you about it: humanVote and humanNote on individual clips (a thumbs-down is them telling you that specific line is wrong), humanAsked with the steers they clicked in their own words, which clips they muted, what they starred, how far over the 60-second budget they are, and how much of the episode the cut spans. ALWAYS read this before proposing a revision — the whole point is that you are working to their taste, not your own.",
-      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: true },
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
       async execute() {
         Store.logTool("getReelState", "");
         const st = Store.reelState();
@@ -80,8 +86,9 @@
     {
       name: "proposeCut",
       description: "Propose a complete short as a named candidate — the main way to help. Give it a title and a one-line angle, plus 4-10 spans drawn from ANYWHERE in the recording (a good short usually jumps across the episode rather than taking one continuous stretch). Give every span a short 'why' so the human can see your reasoning on the clip. The cut lands as pending clips the human can play, keep, or drop — it never overwrites their work silently. Propose two or three contrasting angles rather than one 'best' answer.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: {
           title: { type: "string", description: "Short name for this angle, e.g. 'The rejection arc'." },
           description: { type: "string", description: "One line on what makes this cut work." },
@@ -95,6 +102,7 @@
                 endSec: { type: "number" },
                 why: { type: "string", description: "Why this line earns its place, in a few words." },
               },
+        additionalProperties: false,
               required: ["startSec", "endSec"],
             },
           },
@@ -116,6 +124,7 @@
     {
       name: "addSpan",
       description: "Add one line to the reel, at the end or at a given position. Use this for surgical edits — swapping a weak line, adding a beat the human asked for — rather than rebuilding the whole cut.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object",
         properties: {
@@ -124,6 +133,7 @@
           why: { type: "string", description: "Why it belongs, in a few words." },
           atIndex: { type: "number", description: "Position in the reel; omit to append." },
         },
+        additionalProperties: false,
         required: ["startSec", "endSec"],
       },
       async execute({ startSec, endSec, why, atIndex }) {
@@ -135,7 +145,8 @@
     {
       name: "removeClip",
       description: "Remove a clip from the reel by its index (0-based, as returned by getReelState).",
-      inputSchema: { type: "object", properties: { index: { type: "number" } }, required: ["index"] },
+      annotations: { readOnlyHint: false },
+      inputSchema: { type: "object", properties: { index: { type: "number" } }, additionalProperties: false, required: ["index"] },
       async execute({ index }) {
         const c = Store.state.reel[index];
         if (!c) return note(`No clip at index ${index}.`);
@@ -147,8 +158,9 @@
     {
       name: "reorderClip",
       description: "Move a clip to a different position in the reel. Order is most of what makes a short work — the same lines in a different sequence tell a different story.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: { fromIndex: { type: "number" }, toIndex: { type: "number" } },
         required: ["fromIndex", "toIndex"],
       },
@@ -163,8 +175,9 @@
     {
       name: "loadTranscript",
       description: "Load a different recording's transcript into Cutroom, replacing the demo. Use this when the human wants to cut THEIR material and you already have the transcript — paste it in as timed lines and the page becomes a cutting surface for their recording. Audio is optional: without it the human still gets the full reel, search and ordering, just no playback. If they have the media locally, tell them to drop the file onto the page — it never leaves their browser.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: {
           title: { type: "string", description: "Name of the recording." },
           credit: { type: "string", description: "Source or attribution, if any." },
@@ -179,6 +192,7 @@
                 endSec: { type: "number" },
                 text: { type: "string" },
               },
+        additionalProperties: false,
               required: ["startSec", "endSec", "text"],
             },
           },
@@ -201,6 +215,7 @@
     {
       name: "trimClip",
       description: "Nudge a clip's in and out points, in seconds. Negative headSec starts EARLIER, positive starts later; negative tailSec ends earlier, positive ends later. This is most of what makes a cut tight — a clip that starts half a word late or runs two seconds past the point is the difference between sharp and slack. Boundaries snap to the nearest word so you never cut mid-syllable. Use small values (0.3-1.5s) and play it back.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object",
         properties: {
@@ -208,6 +223,7 @@
           headSec: { type: "number", description: "Move the start. Negative = start earlier." },
           tailSec: { type: "number", description: "Move the end. Negative = end earlier." },
         },
+        additionalProperties: false,
         required: ["index"],
       },
       async execute({ index, headSec = 0, tailSec = 0 }) {
@@ -222,7 +238,8 @@
     {
       name: "getCandidates",
       description: "See every cut proposed so far in this session, which one is currently loaded on the reel, and how the human reacted to each. Read this before proposing again — repeating an angle they already rejected wastes their time, and knowing what they kept tells you what they actually want.",
-      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: true },
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
       async execute() {
         Store.logTool("getCandidates", "");
         return ok(Store.state.candidates.map((c) => ({
@@ -238,8 +255,9 @@
     {
       name: "exportCut",
       description: "Hand the finished cut to the human as a file they can take into an editor. 'edl' gives timecoded in/out points, 'json' gives the raw spans and text, 'text' gives a readable script. Offer this once they sound happy — a cut that can't leave the browser is a toy.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: { format: { type: "string", enum: ["edl", "json", "text"], description: "Defaults to json." } },
       },
       async execute({ format = "json" }) {
@@ -253,7 +271,8 @@
     {
       name: "undoLastChange",
       description: "Undo the last change to the reel. Use this immediately if the human says a change made it worse — it restores what was there before rather than making them rebuild by hand.",
-      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: false },
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
       async execute() {
         const what = Store.undo();
         if (!what) return note("Nothing to undo.");
@@ -264,6 +283,7 @@
     {
       name: "findEnergyMoments",
       description: "Find where the speaker's voice LIFTS — the passages carrying the most energy relative to their own baseline. This reads the actual audio, not the transcript, so it surfaces things no text search can: someone getting animated, a laugh, a moment of real feeling. The best clip in an hour is usually not the smartest sentence, it's the one with the most life in it. Use this alongside searchTranscript, not instead of it: search finds the topic, this finds the delivery. `lift` is how far above their normal level that passage sits.",
+      annotations: { readOnlyHint: true },
       inputSchema: {
         type: "object",
         properties: {
@@ -271,6 +291,7 @@
           minSec: { type: "number", description: "Shortest moment worth returning." },
           maxSec: { type: "number", description: "Longest moment worth returning." },
         },
+        additionalProperties: false,
       },
       async execute({ limit = 12, minSec = 2.5, maxSec = 14 }) {
         Store.logTool("findEnergyMoments", `top ${limit}`);
@@ -282,7 +303,8 @@
     {
       name: "checkFlow",
       description: "Review the cut as an editor would and report what's wrong with it: a hook that starts mid-thought, a clip opening on a pronoun with nothing to point at, sentences sheared off, joins that land on speech instead of in a pause, over-budget, or every clip drawn from one stretch. Call this before telling the human the cut is done — it catches the things that make a short feel broken even when every line is good. Each issue names the clip and suggests the fix.",
-      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: true },
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
       async execute() {
         Store.logTool("checkFlow", "");
         const issues = Analysis.checkFlow();
@@ -293,12 +315,14 @@
     {
       name: "snapToBreath",
       description: "Move a clip's in and out points to the nearest natural pause, using the audio rather than the transcript. A splice that lands on top of a word sounds broken however good the line is; one that lands in a breath sounds deliberate. Use it after trimClip, or whenever checkFlow reports a hard join.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object",
         properties: {
           index: { type: "number", description: "Clip position from getReelState (0-based)." },
           edge: { type: "string", enum: ["in", "out", "both"], description: "Which end to move. Defaults to both." },
         },
+        additionalProperties: false,
         required: ["index"],
       },
       async execute({ index, edge = "both" }) {
@@ -320,12 +344,14 @@
     {
       name: "setClipRole",
       description: "Tag a clip with the job it does in the story: hook (earns the first three seconds), setup (gives the context the payoff needs), turn (the moment it changes), payoff (the thing worth staying for), or button (the line that lets it end). The reel then shows the shape of the story rather than a list of clips, and getReelState reports which roles are missing — a cut with no payoff is the most common way a short fails.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object",
         properties: {
           index: { type: "number" },
           role: { type: "string", enum: ["hook", "setup", "turn", "payoff", "button", "none"] },
         },
+        additionalProperties: false,
         required: ["index", "role"],
       },
       async execute({ index, role }) {
@@ -341,7 +367,8 @@
     {
       name: "tidyClip",
       description: "Clean up a clip's edges: drop leading and trailing filler words (\"Um, so…\", \"…you know\") and land the cut in a pause. A clip that opens on \"Um\" wastes the three seconds that decide whether anyone watches. Fillers in the middle are left alone — that's just how people talk.",
-      inputSchema: { type: "object", properties: { index: { type: "number" } }, required: ["index"] },
+      annotations: { readOnlyHint: false },
+      inputSchema: { type: "object", properties: { index: { type: "number" } }, additionalProperties: false, required: ["index"] },
       async execute({ index }) {
         const c = Store.state.reel[index];
         if (!c) return note(`No clip at index ${index}.`);
@@ -355,8 +382,9 @@
     {
       name: "fitToBudget",
       description: "Trim the whole cut down to a target length, taking the time off clip tails in proportion. Use it when checkFlow says you're over — but play it back afterwards, because proportional trimming is blunt and may clip a line you cared about.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: { targetSec: { type: "number", description: "Target length. Defaults to the reel's 60s target." } },
       },
       async execute({ targetSec }) {
@@ -371,8 +399,9 @@
     {
       name: "playCandidate",
       description: "Play a previously proposed cut WITHOUT loading it onto the reel, so the human can compare two angles back to back without losing the one they're working on. Use it when they ask 'what did the other one sound like?'.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: { title: { type: "string", description: "Title of the candidate, from getCandidates." } },
         required: ["title"],
       },
@@ -388,7 +417,8 @@
     {
       name: "renderVideo",
       description: "Render the cut as an actual vertical video file with burned-in captions and a waveform, and save it to the human's machine. This is the end of the job — everything else produces a decision, this produces something they can post. It records in real time (a 40-second cut takes about 40 seconds and plays out loud while it works), so tell them that before you start, and only do it once they're happy with the cut.",
-      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: false },
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
       async execute() {
         if (!Store.live().length) return note("The reel is empty — nothing to render.");
         Store.logTool("renderVideo", `${Math.round(Store.reelDur())}s`);
@@ -400,12 +430,14 @@
     {
       name: "findPhrase",
       description: "Locate an exact phrase in the recording and get its precise word-level start and end. Transcript lines are an artefact of how words were grouped, not units of meaning — the sayable thing is often a few words inside a line, or a run that straddles two. Use this when you want to cut to a specific wording rather than to a whole line: pass the words as you'd say them and you get back timings accurate to the word.",
+      annotations: { readOnlyHint: true },
       inputSchema: {
         type: "object",
         properties: {
           phrase: { type: "string", description: "The words to find, e.g. 'the phone rings a little differently'." },
           nearSec: { type: "number", description: "If the phrase occurs more than once, prefer the one nearest this time." },
         },
+        additionalProperties: false,
         required: ["phrase"],
       },
       async execute({ phrase, nearSec }) {
@@ -418,6 +450,7 @@
     {
       name: "addPhrase",
       description: "Add a clip that starts and ends on exact words rather than at line boundaries. This is how you cut precisely: instead of taking a whole transcript line and trimming it, say what you want the clip to SAY. Give the opening words, and optionally the closing words — the clip runs from the first to the end of the second.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object",
         properties: {
@@ -426,6 +459,7 @@
           nearSec: { type: "number", description: "Disambiguate a repeated phrase by time." },
           why: { type: "string", description: "Why this earns its place." },
         },
+        additionalProperties: false,
         required: ["startPhrase"],
       },
       async execute({ startPhrase, endPhrase, nearSec, why }) {
@@ -448,6 +482,7 @@
     {
       name: "reshapeClip",
       description: "Change where an existing clip starts or ends, by naming the words rather than guessing seconds. Use it when the human says something like 'start it from where he says the phone rings' — far more reliable than nudging with trimClip until it sounds right.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object",
         properties: {
@@ -455,6 +490,7 @@
           startPhrase: { type: "string", description: "New opening words." },
           endPhrase: { type: "string", description: "New closing words." },
         },
+        additionalProperties: false,
         required: ["index"],
       },
       async execute({ index, startPhrase, endPhrase }) {
@@ -480,7 +516,8 @@
     {
       name: "listCapabilities",
       description: "What this page can do, and the order it's usually worth doing it in. Call it first if you've just arrived and want your bearings — it's cheaper than reading every tool description, and it tells you which tools read the AUDIO rather than the transcript, which is where this page can do things you can't do yourself.",
-      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: true },
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
       async execute() {
         Store.logTool("listCapabilities", "");
         return ok({
@@ -505,8 +542,9 @@
     {
       name: "tightenClip",
       description: "Take the slack out of the MIDDLE of a clip and close the audio up behind it, the way a text-based editor does — hesitation words if the transcript kept them, and over-long pauses whether it did or not. Transcription usually strips 'um' and 'uh', but the hesitation is still there in the audio as dead air, and this reads the audio. Different from tidyClip, which only trims the edges. Use it on a clip that says the right thing but drags.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: { index: { type: "number", description: "Clip position, or omit to clean every clip." } },
       },
       async execute({ index }) {
@@ -526,12 +564,14 @@
     {
       name: "omitPhrase",
       description: "Cut a specific run of words out of the MIDDLE of a clip, keeping what's either side. Use it when a line is nearly right but carries a tangent, a stumble, or a name that means nothing out of context — the sort of thing you'd delete in a text editor and expect the audio to close up behind.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object",
         properties: {
           index: { type: "number", description: "Clip position from getReelState." },
           phrase: { type: "string", description: "The words to take out." },
         },
+        additionalProperties: false,
         required: ["index", "phrase"],
       },
       async execute({ index, phrase }) {
@@ -548,12 +588,14 @@
     {
       name: "redactPhrase",
       description: "Mark material that must not ship — the brand-review case: a comms team comes back with 'take out the bit about the lawsuit' and it has to be gone from every cut, not just the current one. Removes every occurrence across the recording and keeps a standing redaction so it can't creep back into a later cut. Report what you removed; never redact silently.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object",
         properties: {
           phrase: { type: "string", description: "Words to remove everywhere they occur." },
           reason: { type: "string", description: "Why, e.g. 'comms review' — kept on the record and in the export." },
         },
+        additionalProperties: false,
         required: ["phrase"],
       },
       async execute({ phrase, reason }) {
@@ -568,8 +610,9 @@
     {
       name: "redactRange",
       description: "Mark a whole stretch of the recording as unusable — for when a review says 'nothing from 12:00 to 14:30 can go out'. Same standing effect as redactPhrase.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: { fromSec: { type: "number" }, toSec: { type: "number" }, reason: { type: "string" } },
         required: ["fromSec", "toSec"],
       },
@@ -582,12 +625,14 @@
     {
       name: "cleanUpCut",
       description: "One pass over the whole cut: remove stammers and false starts (a word repeated within a beat, or a cut-off word), take out hesitations, and close up dead air — across every clip at once. This is the 'clean the script' pass an editor does last, before anyone hears it. Say what you removed and tell them to play it back.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
         type: "object",
         properties: {
           stammers: { type: "boolean", description: "Remove repeated words and false starts. Default true." },
           slack: { type: "boolean", description: "Remove hesitations and over-long pauses. Default true." },
         },
+        additionalProperties: false,
       },
       async execute({ stammers = true, slack = true }) {
         const before = Store.reelDur();
@@ -608,8 +653,9 @@
     {
       name: "getCutManifest",
       description: "The precise, machine-usable description of the finished cut: every span with in and out to the hundredth of a second, in playback order, including omissions inside clips, plus a ready-to-run ffmpeg command that produces the file. This is the real deliverable — a 60-second short is often ten or more separate spans, and a vague timestamp is useless downstream. Give it to them when they're done, or when they ask 'what are the actual timestamps'.",
+      annotations: { readOnlyHint: true },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: { format: { type: "string", enum: ["json", "ffmpeg", "edl"], description: "Defaults to json." } },
       },
       async execute({ format = "json" }) {
@@ -650,7 +696,8 @@
     {
       name: "getWorkflowState",
       description: "Where this session has got to and what's worth doing next. Cutting a short is a sequence — find, propose, listen, react, tighten, ship — and the useful next move depends on which stage they're at. Call it when you're unsure what to do, or when picking up a session you didn't start.",
-      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: true },
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
       async execute() {
         const S = Store.state, live = Store.live(), d = Store.reelDur();
         const cands = S.candidates.length, votes = S.reel.filter((c) => c.vote).length;
@@ -683,8 +730,9 @@
     {
       name: "playReel",
       description: "Play the current cut out loud for the human, so they can judge it. Do this after proposing — a cut nobody hears is worthless — then ask what they'd change.",
+      annotations: { readOnlyHint: false },
       inputSchema: {
-        type: "object",
+        type: "object", additionalProperties: false,
         properties: { fromIndex: { type: "number", description: "Clip to start from; omit for the top." } },
       },
       async execute({ fromIndex = 0 }) {
@@ -721,9 +769,10 @@
       label.textContent = `${TOOLS.length} tools live`;
       dot.title = TOOLS.map((t) => t.name).join(", ");
       empty.innerHTML =
-        `<b>${TOOLS.length} tools registered on this page.</b> Nothing has called one yet — ` +
-        `the browser exposes them, but an agent has to be the thing that uses them. ` +
-        `Ask ChatGPT (or whatever agent you're running here) for a cut, and every call it makes lands in this list.`;
+        `<b>${TOOLS.length} tools registered on this page.</b> Nothing has called one yet. ` +
+        `<span class="hint">In ChatGPT's browser: pick <b>GPT-5.6 Sol</b> or <b>Terra</b> in the model menu — ` +
+        `earlier models don't see site tools — then check <b>Site tools</b> in the address bar lists them. ` +
+        `Every call lands here.</span>`;
     })
     .catch((err) => {
       label.textContent = "registration failed";
