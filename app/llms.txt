@@ -86,6 +86,34 @@ Notes on the calling convention, learned against Chrome 151:
   play once.
 - `loadTranscript` — replace the demo with their own recording's transcript.
 
+### Cleaning the script
+
+Two passes people expect, and both need the audio:
+
+- `cleanUpCut` — stammers, false starts, hesitations and dead air across every
+  clip at once. This is the pass an editor does last. Note that transcription
+  models usually strip "um" and "uh", so a word list alone would miss most of
+  it; the hesitation is still in the recording as dead air, and this reads that.
+- `redactPhrase` / `redactRange` — material that must not ship. The real case
+  is a brand or comms review coming back with "take out the bit about X": it has
+  to be gone from every cut, not just the current one, and it must not creep
+  back into the next. Redactions stand, apply to future clips, and appear in the
+  export. Never redact silently — say what you removed and why.
+
+### The deliverable
+
+`getCutManifest` is what people actually need downstream: every span with in and
+out to the hundredth of a second, in playback order, including omissions inside
+clips. A 60-second short is often ten or more separate spans, and a vague
+timestamp is useless to whoever conforms it. It also emits a ready-to-run ffmpeg
+command — this page decides WHAT to cut; ffmpeg is better at doing the cutting.
+
+### Knowing where you are
+
+`getWorkflowState` reports the stage (empty / drafted / awaiting-verdict /
+listened / needs-work / polishing / ready) and what's worth doing next. Useful
+when you're picking up a session you didn't start, or you've lost the thread.
+
 ### The loop that works
 
 1. `getSource`. Then BOTH `searchTranscript` (topic) and `findEnergyMoments`

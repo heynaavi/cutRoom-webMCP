@@ -266,5 +266,35 @@ const Analysis = (() => {
     return cuts.sort((a, b) => a.start - b.start);
   }
 
-  return { energyMoments, breaths, nearestBreath, checkFlow, tidyEdges, findPhrase, spanForWords, slackIn, norm };
+  /* ── stammers ───────────────────────────────────────────────────────────── */
+  // "I— I mean" and "that uh that" are the same event: a false start, then the
+  // real one. Keeping the second attempt and cutting the first is what an
+  // editor does by ear; the tell in the data is a word repeating within a beat.
+  function stammersIn(from, to) {
+    const ws = Store.state.words.filter((w) => w.start >= from && w.end <= to);
+    const bare = (w) => w.word.toLowerCase().replace(/[^a-z']/g, "");
+    const out = [];
+    for (let i = 1; i < ws.length; i++) {
+      const a = bare(ws[i - 1]), b = bare(ws[i]);
+      if (!a || a.length > 6) continue;
+      const gap = ws[i].start - ws[i - 1].end;
+      if (a === b && gap < 0.9) {
+        // drop the FIRST attempt, keep the clean one
+        out.push({ start: +ws[i - 1].start.toFixed(2), end: +ws[i].start.toFixed(2), why: `repeated “${ws[i - 1].word}”` });
+      }
+    }
+    // "we were in—" style false starts: a dash or a trailing cut-off word
+    for (const w of ws) {
+      if (/[—–-]$/.test(w.word) && w.word.length > 1) {
+        out.push({ start: +w.start.toFixed(2), end: +Math.min(to, w.end + 0.05).toFixed(2), why: `false start “${w.word}”` });
+      }
+    }
+    return out.sort((a, b) => a.start - b.start);
+  }
+
+  /* Every occurrence of a phrase across the whole recording. */
+  function findAll(phrase) { return findPhrase(phrase, { limit: 500 }); }
+
+  return { energyMoments, breaths, nearestBreath, checkFlow, tidyEdges, findPhrase,
+           findAll, spanForWords, slackIn, stammersIn, norm };
 })();

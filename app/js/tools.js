@@ -546,6 +546,141 @@
       },
     },
     {
+      name: "redactPhrase",
+      description: "Mark material that must not ship — the brand-review case: a comms team comes back with 'take out the bit about the lawsuit' and it has to be gone from every cut, not just the current one. Removes every occurrence across the recording and keeps a standing redaction so it can't creep back into a later cut. Report what you removed; never redact silently.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          phrase: { type: "string", description: "Words to remove everywhere they occur." },
+          reason: { type: "string", description: "Why, e.g. 'comms review' — kept on the record and in the export." },
+        },
+        required: ["phrase"],
+      },
+      async execute({ phrase, reason }) {
+        const hits = Analysis.findAll(phrase);
+        if (!hits.length) return note(`“${phrase}” doesn't appear in this recording.`);
+        Store.logTool("redactPhrase", `“${String(phrase).slice(0, 24)}” ×${hits.length}`);
+        let touched = 0;
+        for (const h of hits) touched += Store.redact(h.startSec, h.endSec, reason).touched;
+        return note(`Redacted ${hits.length} occurrence${hits.length > 1 ? "s" : ""} of “${phrase}”${reason ? ` (${reason})` : ""}. ${touched ? `${touched} clip(s) in the current cut were affected.` : "None are in the current cut, but it can't be used in a later one either."} The redaction is on the record and shows in the export.`);
+      },
+    },
+    {
+      name: "redactRange",
+      description: "Mark a whole stretch of the recording as unusable — for when a review says 'nothing from 12:00 to 14:30 can go out'. Same standing effect as redactPhrase.",
+      inputSchema: {
+        type: "object",
+        properties: { fromSec: { type: "number" }, toSec: { type: "number" }, reason: { type: "string" } },
+        required: ["fromSec", "toSec"],
+      },
+      async execute({ fromSec, toSec, reason }) {
+        Store.logTool("redactRange", `${Math.round(fromSec)}–${Math.round(toSec)}s`);
+        const r = Store.redact(fromSec, toSec, reason);
+        return note(`Marked ${(toSec - fromSec).toFixed(0)}s unusable${reason ? ` (${reason})` : ""}. ${r.touched} clip(s) in the current cut were affected.`);
+      },
+    },
+    {
+      name: "cleanUpCut",
+      description: "One pass over the whole cut: remove stammers and false starts (a word repeated within a beat, or a cut-off word), take out hesitations, and close up dead air — across every clip at once. This is the 'clean the script' pass an editor does last, before anyone hears it. Say what you removed and tell them to play it back.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          stammers: { type: "boolean", description: "Remove repeated words and false starts. Default true." },
+          slack: { type: "boolean", description: "Remove hesitations and over-long pauses. Default true." },
+        },
+      },
+      async execute({ stammers = true, slack = true }) {
+        const before = Store.reelDur();
+        const found = [];
+        for (const c of Store.state.reel) {
+          const cuts = [
+            ...(stammers ? Analysis.stammersIn(c.start, c.end) : []),
+            ...(slack ? Analysis.slackIn(c) : []),
+          ].sort((a, b) => a.start - b.start);
+          for (const x of cuts) { Store.omit(c.id, x.start, x.end); found.push(x.why); }
+        }
+        if (!found.length) return note("Nothing to clean — the cut is already tight.");
+        Store.logTool("cleanUpCut", `${found.length} cuts`);
+        const saved = (before - Store.reelDur()).toFixed(1);
+        return note(`Made ${found.length} cuts (${[...new Set(found)].slice(0, 6).join("; ")}${found.length > 6 ? "…" : ""}), saving ${saved}s. Now ${Math.round(Store.reelDur())}s. Play it back — closing up audio can occasionally clip a word.`);
+      },
+    },
+    {
+      name: "getCutManifest",
+      description: "The precise, machine-usable description of the finished cut: every span with in and out to the hundredth of a second, in playback order, including omissions inside clips, plus a ready-to-run ffmpeg command that produces the file. This is the real deliverable — a 60-second short is often ten or more separate spans, and a vague timestamp is useless downstream. Give it to them when they're done, or when they ask 'what are the actual timestamps'.",
+      inputSchema: {
+        type: "object",
+        properties: { format: { type: "string", enum: ["json", "ffmpeg", "edl"], description: "Defaults to json." } },
+      },
+      async execute({ format = "json" }) {
+        const spans = Store.playSpans();
+        if (!spans.length) return note("The reel is empty.");
+        Store.logTool("getCutManifest", format);
+        const tc = (x) => { const t = Math.floor(x); return `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Math.floor(t / 60) % 60).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}.${String(Math.round((x % 1) * 1000)).padStart(3, "0")}`; };
+        const total = spans.reduce((n, s) => n + (s.end - s.start), 0);
+        if (format === "ffmpeg") {
+          const f = spans.map((s) => `between(t\,${s.start.toFixed(3)}\,${s.end.toFixed(3)})`).join("+");
+          return ok({
+            spanCount: spans.length, durationSec: +total.toFixed(2),
+            command: `ffmpeg -i INPUT -vf "select='${f}',setpts=N/FRAME_RATE/TB" -af "aselect='${f}',asetpts=N/SR/TB" OUTPUT.mp4`,
+            note: "Single-pass select filter. For frame-exact cuts on long sources, cutting each span separately and concat-demuxing is more reliable.",
+          });
+        }
+        if (format === "edl") {
+          let rec = 0;
+          return ok({ spanCount: spans.length, durationSec: +total.toFixed(2),
+            edl: spans.map((s, i) => { const d = s.end - s.start; const line = `${String(i + 1).padStart(3, "0")}  AX  AA/V  C  ${tc(s.start)} ${tc(s.end)} ${tc(rec)} ${tc(rec + d)}`; rec += d; return line; }) });
+        }
+        let at = 0;
+        return ok({
+          title: Store.state.source.title, credit: Store.state.source.credit,
+          spanCount: spans.length, durationSec: +total.toFixed(2),
+          redactionsApplied: Store.state.redactions.length,
+          spans: spans.map((s, i) => {
+            const row = { n: i + 1, sourceInSec: +s.start.toFixed(2), sourceOutSec: +s.end.toFixed(2),
+                          durationSec: +(s.end - s.start).toFixed(2),
+                          timelineInSec: +at.toFixed(2), sourceIn: tc(s.start), sourceOut: tc(s.end),
+                          text: Store.textBetween(s.start, s.end) };
+            at += s.end - s.start;
+            return row;
+          }),
+        });
+      },
+    },
+    {
+      name: "getWorkflowState",
+      description: "Where this session has got to and what's worth doing next. Cutting a short is a sequence — find, propose, listen, react, tighten, ship — and the useful next move depends on which stage they're at. Call it when you're unsure what to do, or when picking up a session you didn't start.",
+      inputSchema: { type: "object", properties: {} },
+      async execute() {
+        const S = Store.state, live = Store.live(), d = Store.reelDur();
+        const cands = S.candidates.length, votes = S.reel.filter((c) => c.vote).length;
+        const pending = S.reel.filter((c) => c.ghost).length;
+        const issues = Analysis.checkFlow();
+        const played = S.log.some((l) => l.tool === "playReel");
+        const omissions = S.reel.reduce((n, c) => n + (c.cuts || []).length, 0);
+
+        let stage = "empty", next;
+        if (!live.length) { stage = "empty"; next = ["searchTranscript and findEnergyMoments to see what's here", "proposeCut with two or three contrasting angles"]; }
+        else if (!played) { stage = "drafted"; next = ["playReel — they haven't heard it yet, and nothing else matters until they have"]; }
+        else if (pending) { stage = "awaiting-verdict"; next = ["Ask which pending clips they want to keep", "getReelState to see what they've already reacted to"]; }
+        else if (!votes && !S.notes.length) { stage = "listened"; next = ["Ask what they'd change — a vote or a steer tells you far more than another proposal"]; }
+        else if (issues.some((i) => i.severity === "high")) { stage = "needs-work"; next = ["checkFlow and fix the high-severity items", "trimClip / reshapeClip / snapToBreath"]; }
+        else if (!omissions) { stage = "polishing"; next = ["cleanUpCut to take out stammers and dead air", "tidyClip on any clip that opens on a filler"]; }
+        else { stage = "ready"; next = ["getCutManifest for the exact timestamps", "renderVideo or exportCut to hand it over"]; }
+
+        return ok({
+          stage,
+          suggestedNext: next,
+          clips: live.length, durationSec: +d.toFixed(1), targetSec: S.targetSec,
+          candidatesProposed: cands, clipsPendingApproval: pending,
+          humanReactions: votes, humanSteers: S.notes.map((n) => n.text),
+          omissionsMade: omissions, redactions: S.redactions.length,
+          openIssues: issues.length, highSeverity: issues.filter((i) => i.severity === "high").length,
+          hasBeenPlayed: played,
+        });
+      },
+    },
+    {
       name: "playReel",
       description: "Play the current cut out loud for the human, so they can judge it. Do this after proposing — a cut nobody hears is worthless — then ask what they'd change.",
       inputSchema: {

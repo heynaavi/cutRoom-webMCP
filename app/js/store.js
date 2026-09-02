@@ -14,6 +14,7 @@ const Store = (() => {
     candidates: [],        // {id, title, desc, spans, appliedAt, verdict}
     activeCand: null,
     notes: [],             // {text, at} — what the human asked for, in their words
+    redactions: [],        // [{start,end,reason}] — never ships, in any cut
     targetSec: 60,
     tab: "transcript",
     query: "",
@@ -213,6 +214,30 @@ const Store = (() => {
       return c;
     },
 
+    /* Material that must not ship — a comms review, a legal note, a name.
+       Applies to every clip that touches it, now and later, and is reported
+       rather than quietly dropped. */
+    redact(start, end, reason) {
+      snapshot("redact");
+      state.redactions.push({ start: +start.toFixed(2), end: +end.toFixed(2), reason: reason || null });
+      let touched = 0;
+      for (const c of state.reel) {
+        if (c.end > start && c.start < end) {
+          c.cuts = [...(c.cuts || []), { start: Math.max(start, c.start), end: Math.min(end, c.end) }];
+          c.text = api.textOf(c);
+          touched++;
+        }
+      }
+      emit("reel");
+      return { touched, total: state.redactions.length };
+    },
+
+    clearRedactions() {
+      snapshot("clear redactions");
+      state.redactions = [];
+      emit("reel");
+    },
+
     /* Excise a stretch from the middle of a clip. The words stop being spoken;
        the clip keeps its shape either side. */
     omit(id, start, end) {
@@ -362,6 +387,7 @@ const Store = (() => {
         keptCount: state.reel.filter((c) => !c.ghost).length,
         mutedCount: state.reel.filter((c) => c.muted).length,
         canUndo: undoStack.length > 0,
+        redactions: state.redactions.map((r) => ({ startSec: r.start, endSec: r.end, reason: r.reason })),
         // The shape of the story, not just its length. A cut with no payoff is
         // the commonest way a short fails.
         rolesPresent: [...new Set(state.reel.filter((c) => !c.muted).map((c) => c.role).filter(Boolean))],
