@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Cutroom — gallery cards</title>
+<style>
+@font-face { font-family:"SG"; src:url("../app/fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; }
+@font-face { font-family:"DM"; src:url("../app/fonts/DMSans-VariableFont_opsz,wght.ttf") format("truetype"); font-weight:100 900; }
+@font-face { font-family:"JB"; src:url("../app/fonts/JetBrainsMono-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; }
+:root { --bg:#e6e0cf; --surface:#f8f5ed; --surface-2:#dcd4c0; --text:#211f1a; --muted:#5a574e;
+        --faint:#948d7a; --accent:#c4582f; --ghost:#3f6b8a; --ink:#171613; }
+*,*::before,*::after { box-sizing:border-box; }
+html,body { margin:0; width:1800px; height:1200px; overflow:hidden; background:var(--bg);
+            font-family:"DM",sans-serif; color:var(--text); -webkit-font-smoothing:antialiased; }
+body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:.30;
+  background-image:radial-gradient(circle at 1px 1px, rgba(44,42,38,.16) 1px, transparent 0);
+  background-size:6px 6px; mix-blend-mode:multiply; }
+.card { position:fixed; inset:0; }
+.card:not(.on) { display:none !important; }
+.card.on.bleed, .card.on.top { display:block; }
+
+/* ── type ─────────────────────────────────────────────────────────────────── */
+.kicker { font-family:"JB",monospace; font-size:21px; letter-spacing:.22em; text-transform:uppercase;
+          color:var(--accent); margin-bottom:26px; }
+h1 { font-family:"SG",sans-serif; font-weight:600; letter-spacing:-.03em; font-size:84px;
+     line-height:1.04; margin:0; max-width:11ch; text-wrap:balance; }
+h1 em { font-style:normal; color:var(--accent); }
+p.sub { font-size:29px; line-height:1.42; color:var(--muted); max-width:30ch; margin:30px 0 0; }
+.mono { font-family:"JB",monospace; }
+
+/* ── the window the app sits in ───────────────────────────────────────────── */
+/* A browser chrome drawn in the brand rather than a real Chrome frame, so the
+   screenshot reads as "the product" and not as "someone's desktop". */
+.win { position:absolute; border-radius:22px; overflow:hidden; background:var(--ink);
+       box-shadow:0 60px 120px rgba(60,40,20,.30), 0 0 0 1px rgba(44,42,38,.18); }
+.win .bar { height:46px; background:#2a2721; display:flex; align-items:center; gap:10px; padding:0 20px; }
+.win .bar i { width:12px; height:12px; border-radius:50%; background:#5a574e; display:block; }
+.win .bar span { margin-left:16px; font-family:"JB",monospace; font-size:14px; letter-spacing:.06em; color:#8f8779; }
+.win img { display:block; width:100%; height:auto; }
+
+/* layout A — headline left, window bleeding off the right and bottom */
+.bleed .copy { position:absolute; left:120px; top:150px; width:640px; }
+.bleed .win  { left:820px; top:150px; width:1500px; }
+/* layout B — window full width, headline above, bleeds off the bottom */
+.top .copy { position:absolute; left:120px; top:110px; }
+.top .win  { left:120px; top:420px; width:1560px; }
+/* detail windows: a tall rail crop, and a wide strip crop */
+.bleed .win.tall { left:900px; top:110px; width:760px; }
+.top .win.strip  { left:120px; top:430px; width:1560px; }
+.bleed .win.phone { left:1080px; top:110px; width:600px; }
+/* layout C — statement only */
+.stmt { display:flex; flex-direction:column; justify-content:center; padding:0 150px; }
+.stmt h1 { font-size:104px; max-width:14ch; }
+
+/* ── specific cards ───────────────────────────────────────────────────────── */
+/* the hour drawn: same diagram as the app, at poster scale */
+.hourbar { position:relative; height:170px; border-radius:18px; background:var(--surface-2);
+           overflow:hidden; margin-top:64px; }
+.hourbar .ticks i { position:absolute; top:44px; bottom:44px; width:2px; background:var(--text); opacity:.16; }
+.hourbar b { position:absolute; top:18px; bottom:18px; min-width:14px; border-radius:7px;
+             background:var(--accent); box-shadow:0 0 0 7px var(--surface-2); }
+.legend { display:flex; gap:22px; margin-top:26px; font-family:"JB",monospace; font-size:24px;
+          letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+.legend em { font-style:normal; font-weight:600; color:var(--text); }
+.legend .to { color:var(--accent); }
+
+/* tools grid */
+.grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px 40px; margin-top:54px;
+        font-family:"JB",monospace; font-size:27px; color:var(--muted); }
+.grid span.hot { color:var(--accent); font-weight:600; }
+.codeline { display:inline-block; margin-top:34px; padding:26px 36px; border-radius:16px;
+            background:var(--surface); border:2px solid rgba(44,42,38,.13);
+            font-family:"JB",monospace; font-size:40px; }
+.codeline .k { color:var(--accent); }
+
+/* 06 */
+.six { display:flex; align-items:center; gap:110px; padding:0 130px; }
+.card.on.six { display:flex; }
+.six-l { flex:0 0 640px; }
+.six-r { flex:1; }
+.big { font-family:"SG",sans-serif; font-weight:700; font-size:330px; line-height:.9; letter-spacing:-.06em; color:var(--text); margin-left:-14px; }
+.biglabel { font-family:"SG",sans-serif; font-weight:500; font-size:40px; line-height:1.15; color:var(--muted); margin-top:18px; letter-spacing:-.01em; }
+.ears { list-style:none; margin:26px 0 0; padding:0; }
+.ears li { display:flex; flex-direction:column; gap:6px; padding:24px 0; border-top:2px solid rgba(44,42,38,.13); }
+.ears li:last-child { border-bottom:2px solid rgba(44,42,38,.13); }
+.ears b { font-family:"JB",monospace; font-size:38px; font-weight:600; color:var(--accent); }
+.ears span { font-size:26px; color:var(--muted); }
+
+/* closer */
+.mark { display:flex; gap:14px; align-items:flex-end; height:120px; margin-bottom:54px; }
+.mark span { width:22px; background:var(--accent); border-radius:11px; display:block; }
+.wordmark { font-family:"SG",sans-serif; font-weight:700; letter-spacing:-.04em; font-size:190px; line-height:1; }
+.wordmark em { font-style:normal; color:var(--accent); }
+.url { font-family:"JB",monospace; font-size:44px; color:var(--accent); margin-top:34px; }
+.foot { font-family:"JB",monospace; font-size:24px; color:var(--muted); margin-top:22px;
+        letter-spacing:.14em; text-transform:uppercase; }
+.center { align-items:center; text-align:center; }
+</style></head><body>
+
+<!-- 01 · the question -->
+<section class="card stmt" id="c01">
+  <div class="kicker">The problem</div>
+  <h1>A 38-minute podcast holds five lines that, in the right order, are <em>a story.</em></h1>
+  <div class="hourbar"><div class="ticks" id="ticks"></div><div id="marks"></div></div>
+  <div class="legend"><span><em>547</em> lines</span><span class="to">→</span><span><em>5</em> clips</span><span class="to">→</span><span><em>32s</em></span></div>
+</section>
+
+<!-- 02 · it can hear -->
+<section class="card bleed" id="c02">
+  <div class="copy">
+    <div class="kicker">The part that matters</div>
+    <h1>The agent can <em>hear.</em></h1>
+    <p class="sub">Five of the 33 tools read the waveform, not the words. The strongest moment in the episode is a line no keyword search would rank.</p>
+  </div>
+  <div class="win tall"><div class="bar"><i></i><i></i><i></i><span>Energy · findEnergyMoments</span></div><img src="gallery-src/energy-detail.jpg"></div>
+</section>
+
+<!-- 03 · proposes -->
+<section class="card bleed" id="c03">
+  <div class="copy">
+    <div class="kicker">Nothing is committed</div>
+    <h1>It proposes. <em>You</em> decide.</h1>
+    <p class="sub">Five clips land dashed, drawn from across 68% of the hour. A thumbs-down goes straight back through <span class="mono">getReelState</span>.</p>
+  </div>
+  <div class="win"><div class="bar"><i></i><i></i><i></i><span>cutroom-webmcp.vercel.app</span></div><img src="gallery-src/propose.jpg"></div>
+</section>
+
+<!-- 04 · cleanup -->
+<section class="card top" id="c04">
+  <div class="copy">
+    <div class="kicker">cleanUpCut</div>
+    <h1 style="font-size:70px;max-width:20ch">The hesitations come out — and you can <em>see</em> what left.</h1>
+    <p class="sub" style="max-width:60ch;margin-top:22px">Four struck out, 1.1 seconds saved, nothing actually said is lost — and every one can be restored with a click.</p>
+  </div>
+  <div class="win strip" style="top:520px"><div class="bar"><i></i><i></i><i></i><span>The reel · after cleanUpCut</span></div><img src="gallery-src/clean-detail.jpg"></div>
+</section>
+
+<!-- 05 · checks itself -->
+<section class="card bleed" id="c05">
+  <div class="copy">
+    <div class="kicker">checkFlow</div>
+    <h1>It checks its own work like an <em>editor.</em></h1>
+    <p class="sub">Weak hook. A sentence sheared off. Joins that land on speech instead of in a pause. Each one names the clip and the fix.</p>
+  </div>
+  <div class="win tall"><div class="bar"><i></i><i></i><i></i><span>Notes · checkFlow</span></div><img src="gallery-src/check-detail.jpg"></div>
+</section>
+
+<!-- 06 · the tools -->
+<section class="card six" id="c06">
+  <div class="six-l">
+    <div class="kicker">How it's built</div>
+    <div class="big">33</div>
+    <div class="biglabel">WebMCP tools, registered<br>in the page itself</div>
+    <div class="codeline" style="font-size:31px;margin-top:40px"><span class="k">document</span>.modelContext.<span class="k">registerTool</span>(…)</div>
+  </div>
+  <div class="six-r">
+    <div class="kicker" style="color:var(--muted)">Five of them read the audio, not the transcript</div>
+    <ul class="ears">
+      <li><b>findEnergyMoments</b><span>where the voice lifts above its own baseline</span></li>
+      <li><b>snapToBreath</b><span>move an edit point into a real pause</span></li>
+      <li><b>tightenClip</b><span>dead air out of the middle, audio closed up behind</span></li>
+      <li><b>cleanUpCut</b><span>the same pass across every clip at once</span></li>
+      <li><b>checkFlow</b><span>flags joins that land on speech, not in a breath</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 07 · the output -->
+<section class="card bleed" id="c07">
+  <div class="copy" style="width:760px">
+    <div class="kicker">The deliverable</div>
+    <h1>A file, not a <em>suggestion.</em></h1>
+    <p class="sub" style="max-width:34ch">A 1080×1920 MP4 with word-by-word captions, rendered in the browser with no server — or every span to a hundredth of a second, plus an ffmpeg command that has been run and checked.</p>
+  </div>
+  <div class="win phone"><div class="bar"><i></i><i></i><i></i><span>renderVideo · 1080 × 1920 · H.264</span></div><img src="gallery-src/short-frame.jpg"></div>
+</section>
+
+<!-- 08 · closer -->
+<section class="card stmt center" id="c08">
+  <div class="mark"><span style="height:62%"></span><span style="height:100%"></span><span style="height:44%"></span><span style="height:78%"></span></div>
+  <div class="wordmark">Cut<em>room</em></div>
+  <div class="url">cutroom-webmcp.vercel.app</div>
+  <div class="foot">33 tools · document.modelContext · MIT · Chrome 149+</div>
+</section>
+
+<script>
+const D = 2309.76, CLIPS = [321, 461.56, 996.24, 1122.08, 1891.7];
+let t = ""; for (let i = 0; i < 547; i++) t += `<i style="left:${(i/547*100).toFixed(3)}%"></i>`;
+document.getElementById("ticks").innerHTML = t;
+document.getElementById("marks").innerHTML = CLIPS.map(c => `<b style="left:${(c/D*100).toFixed(3)}%"></b>`).join("");
+const TOOLS = ["getSource","searchTranscript","readTranscript","getReelState","proposeCut","addSpan","removeClip",
+ "reorderClip","trimClip","getCandidates","exportCut","undoLastChange","findEnergyMoments","checkFlow","snapToBreath",
+ "setClipRole","tidyClip","fitToBudget","playCandidate","renderVideo","findPhrase","addPhrase","reshapeClip",
+ "listCapabilities","tightenClip","omitPhrase","redactPhrase","redactRange","cleanUpCut","getCutManifest",
+ "getWorkflowState","playReel","loadTranscript"];
+const AUDIO = new Set(["findEnergyMoments","snapToBreath","tightenClip","cleanUpCut","checkFlow"]);
+const grid = document.getElementById("grid"); if (grid) grid.innerHTML = TOOLS.map(x => `<span class="${AUDIO.has(x)?"hot":""}">${x}</span>`).join("");
+const id = new URLSearchParams(location.search).get("card") || "c01";
+document.querySelectorAll(".card").forEach(c => c.classList.toggle("on", c.id === id));
+window.__ready = () => document.fonts.ready.then(() => new Promise(r => setTimeout(r, 300))).then(() => true);
+</script>
+</body></html>
