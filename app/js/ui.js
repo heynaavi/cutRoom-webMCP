@@ -922,7 +922,7 @@ async function boot() {
   // Everything above works without the demo episode — loading your own material
   // is the recovery path, so it gets wired before anything can fail.
   if (!(await loadDemoEpisode())) return;
-  Tour.boot();
+  Tour.bootOnce();
 }
 
 /* The bundled episode. A CDN hiccup or an offline reload shouldn't leave a blank
