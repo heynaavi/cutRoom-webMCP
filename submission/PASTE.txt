@@ -1,189 +1,94 @@
-PROJECT NAME
+════════════════════════════════════════════════════════════════════
+STEP 2 · PROJECT OVERVIEW
+════════════════════════════════════════════════════════════════════
+
+PROJECT NAME  (60 max — this is 7)
 Cutroom
 
-TAGLINE
-Find the short inside the hour — a WebMCP editor where the agent can hear, not just read.
+ELEVATOR PITCH  (200 max — this is 168)
+A WebMCP cutting room for podcast shorts. The agent searches 547 lines, listens to the audio for where the voice lifts, proposes a cut and plays it. You keep the taste.
 
-TRY IT (link)
-https://cutroom-webmcp.vercel.app
+THUMBNAIL
+thumbnail.jpg (sent in chat) — 1500×1000, 3:2
 
-REPO (link)
-https://github.com/heynaavi/cutRoom-webMCP
+════════════════════════════════════════════════════════════════════
+STEP 3 · PROJECT DETAILS
+════════════════════════════════════════════════════════════════════
 
-VIDEO
-Upload cutroom-demo.mp4 (in this chat) to YouTube, public, paste the link.
-Fallback public URL if YouTube stalls: https://cutroom-webmcp.vercel.app/demo.mp4
+ABOUT THE PROJECT  — paste everything between the ==== lines.
+Headings answer the four required points in the order the brief asks.
+Markdown only: headings, bold, lists, links, code. No tables, no images.
 
-BUILT WITH (tags)
-javascript, webmcp, gsap, ffmpeg, whisper, vercel, mediarecorder
+================================================================
+## Why this use case fits WebMCP
 
-ABOUT THE PROJECT (markdown — paste all of this)
-## Inspiration
+A 38-minute podcast contains maybe five lines that, in the right order, are a story. Finding them is a search problem with **no correct answer — only taste** — and you cannot judge a candidate without *hearing* it.
 
-A 38-minute podcast contains maybe five lines that, in the right order, are a
-story. Finding them is a search problem with no correct answer — only taste —
-and you cannot judge a candidate without hearing it.
+The sponsor demos are transactional: a storefront, a reservation, a return. There the agent *completes* a task you'd rather not do. Cutting a short isn't that shape. There is no answer to find, only a judgement to make, and the person has to hear the result to make it. So the work splits along one axis:
 
-Both existing options fail. Doing it by hand means scrubbing 547 transcript
-lines while holding a story in your head. Handing it to an AI means it returns
-one cut, you feel it's wrong, and you have no vocabulary to say why and no cheap
-way to explore what's next to it. You bounce back to doing it by hand.
+- **The agent does:** read 547 lines in a second · hear where the voice lifts across 38 minutes · trim to word boundaries · cut on breath.
+- **The human does:** decide which five lines are a story · decide whether that's the right kind of energy · say "too long" after hearing it.
 
-So the design principle isn't "let the agent write the script." It's:
+Neither half works alone. That is why this is a WebMCP app and not a chatbot with an API: **the tools have to live where the person is listening.**
 
-> **The agent's job is to make your judgment cheap.**
+## How it creates a better user experience
 
-## What it does
+Cutroom registers **33 tools** on `document.modelContext`. Three things make it more than a wrapper:
 
-Cutroom registers **33 WebMCP tools** on `document.modelContext`. An agent can
-search a transcript, propose complete cuts assembled from non-contiguous spans
-anywhere in the recording, trim to word boundaries, cut on breath, clean out
-hesitations, and **play the result out loud** — while the person listening keeps
-every decision that matters.
+**1. The agent can hear.** `findEnergyMoments` reads the RMS envelope of the actual audio and returns where the speaker's voice lifts above their own baseline. On the demo episode the strongest moment is *"I mean, isn't that amazing that we did that?"* at 29:38 — lift ×2.85 — a line no keyword search ranks, because the signal is in the delivery. Five of the 33 tools read the audio rather than the transcript; it runs in 1.7 ms over 21,000 samples.
 
-Three things make it more than a wrapper:
+**2. Taste travels both ways.** Agent proposals land as *pending* clips — dashed, each with a one-line reason — never as silent overwrites. A thumbs-down or a steer chip ("Tighter", "Colder open") comes back through `getReelState` as `humanVote`, `humanNote`, `humanAsked`. The agent revises to the person's taste, not its own. Every call appears in a visible ledger, and everything is undoable.
 
-**1. The agent can hear.** `findEnergyMoments` reads the RMS envelope of the
-real audio and returns where the voice lifts above its own baseline. Editors
-will tell you the most clippable moment in an hour is rarely the smartest
-sentence — it's the one with the most life in it. A transcript cannot show you
-that. On the demo episode the strongest moment it returns is *"I mean, isn't
-that amazing that we did that?"* at 29:38 — lift 2.85 over her own baseline —
-and *"are you going to have a giggle fit?"* comes fourth. Neither is a line any
-keyword search ranks, because the signal is in the delivery, not the words. It
-runs in **1.7ms over 21,000 envelope samples**.
+**3. It knows the craft.** `checkFlow` reports what an editor would flag: a hook opening mid-thought, a join landing on speech instead of in a pause, a sentence sheared off. `cleanUpCut` removes stammers and dead air from the *middle* of a clip and closes the audio up behind them. `getCutManifest` hands over every span to a hundredth of a second plus an ffmpeg command — which has been run and verified: 30.53 s out for a manifest claiming 30.5 s. `renderVideo` produces a 1080×1920 H.264 MP4 with word-by-word captions, in the browser, with no server.
 
-**2. Taste travels both ways.** Agent proposals land as *pending* clips, never
-silent overwrites. The human thumbs-down a clip or clicks a steer chip
-("Tighter", "Colder open"), and those come back through `getReelState` as
-`humanVote`, `humanNote` and `humanAsked`. The agent revises to their taste
-rather than its own. Every tool call appears in a visible ledger.
+## What people and agents can accomplish together that wasn't possible before
 
-**3. It knows the craft.** `checkFlow` reports what an editor would flag: a hook
-that opens mid-thought, a clip starting on a pronoun with no antecedent in the
-cut, a join that cuts in mid-flow, everything drawn from one stretch.
-`snapToBreath` moves cut points to real pauses. `cleanUpCut` removes stammers
-and dead air from the *middle* of a clip and closes the audio up behind them.
-`getCutManifest` returns every span to a hundredth of a second, plus an ffmpeg
-command — we decide what to cut; ffmpeg does the cutting. That command is not a
-plausible-looking string: run against the demo episode it produces a 30.53s file
-for a manifest claiming 30.5s across 8 spans, which is AAC frame quantisation
-and nothing else. `exportCut` hands
-over EDL, JSON, a readable script, or **SRT captions timed against the finished
-cut** rather than the source, so they burn straight onto the exported video.
+Before: you scrub 547 lines by hand holding a story in your head, or you hand it to an AI that returns one cut you can't hear, feel is wrong, and have no vocabulary to correct. Either way you end up doing it by hand.
 
-## Why WebMCP fits this use case
+Now: the agent proposes two or three *contrasting angles* from across the whole hour; you hear each in seconds; you thumbs-down a line and the agent knows exactly which line and revises around it; it checks its own cut like an editor; it hands back timestamps that survive contact with a real pipeline. **The agent makes your judgement cheap.** That loop — propose, hear, react, revise — did not exist, because the agent had no ears and no way to read the person's reaction.
 
-The sponsor demos are transactional — storefronts, reservations, returns. There
-the agent *completes* a task you'd rather not do by hand.
+It also works the other direction: `loadTranscript` lets an agent bring *its own* material in, so an agent that already holds a transcript can hand it over and start cutting.
 
-Cutting a short isn't that shape. There is no correct answer to find, only a
-judgement to make, and the person has to hear it to make it. So the work splits
-cleanly along the one axis that matters:
+## How WebMCP is implemented
 
-| The agent does | The human does |
-|---|---|
-| read 547 lines in a second | decide which five are a story |
-| hear where the voice lifts across 38 minutes | decide whether that's the right kind of energy |
-| trim to word boundaries, cut on breath | say "that's too long" after hearing it |
+- **Registration:** 33 tools via `document.modelContext.registerTool()`, each with a JSON-schema `inputSchema`, `annotations.readOnlyHint`, and `additionalProperties: false`. Registered in `<head>` before first paint, so a runtime that snapshots page tools early finds them. `navigator.modelContext` is a true fallback only (reading it logs a deprecation).
+- **Environment:** origin isolation (`Origin-Agent-Cluster: ?1`), `Permissions-Policy: tools=(self)`, `/.well-known/mcp.json` generated from the registration code so it cannot drift, and `/llms.txt` guidance — including what an agent with **no** tool bridge should do (fetch the transcript and waveform, return real timestamps, say plainly it couldn't call the tools).
+- **Discovery:** `listCapabilities` returns what's here, the order worth doing it in, and which tools read the audio. `getWorkflowState` reports the stage (empty → drafted → listened → polishing → ready) and what's sensible next.
+- **Verification:** `bin/verify.sh` drives the tools over CDP in Chrome 149+ and proves registration, execution, DOM effect and `getReelState` round-trip. A 39-call sweep with deliberately bad arguments (index 99, phrases nobody said, out-of-range times): **0 thrown** — every tool answers with something an agent can act on.
+- **Honest limits:** verified end-to-end in **Chrome 149+ with `--enable-features=WebMCP`**. Every documented requirement for ChatGPT's browser is met; on GPT-5.6 Terra with site tools enabled it still reported the bridge unavailable to it, so the Chrome path is the one demonstrated. A judge with no WebMCP browser gets a scripted demo of the *real* tool calls, plus a text-only fallback that is deliberately labelled as worse than the agent.
 
-Neither half works alone. That's why this is a WebMCP app rather than a chatbot
-with an API: **the tools have to live where the person is listening.**
+## Built with
 
-## How humans and agents collaborate here
-
-The brief asks for people and agents *creating together*, so the collaboration
-runs in both directions rather than one:
-
-- **Agent → human.** Proposals land as *pending* clips on the reel, dashed, each
-  with a one-line reason. Nothing is committed. The human plays them and decides.
-- **Human → agent.** A thumbs-down on a clip, or a steer chip ("Tighter",
-  "Colder open"), is recorded and returned through `getReelState` as
-  `humanVote`, `humanNote`, `humanAsked`. The agent revises to their taste
-  rather than its own.
-- **Both → visible.** Every tool call appears in a live ledger. The human always
-  knows what the agent just did, and can undo it.
-
-## Why this needs WebMCP
-
-An agent driving this page through the DOM would scroll 547 lines and guess.
-With tools it calls `searchTranscript("the call came")` and gets
-`{startSec: 1122.08, endSec: 1129.78}` — a precise operation on the *time domain*
-of a recording, which is not something you can click.
-
-And the reads are bidirectional. `getReelState` doesn't return a number; it
-returns what the human just did. That's the part a conventional MCP server
-can't replicate: the tools live where the person is.
-
-## How we built it
-
-100% static — no backend, no API keys, no database. The intelligence is the
-visiting agent; we ship the tools. Vanilla JS, GSAP for motion.
-
-Demo material is NASA's *Houston We Have a Podcast* ep. 327 (public domain),
-transcribed locally with whisper.cpp using a **verbatim prompt** — the default
-run silently strips disfluencies (0 "um"s), the prompted run keeps them (220),
-which is exactly what the cleanup tools exist to remove.
-
-## Challenges
-
-**Cuts derived from audio must be checked against words.** An early cleanup pass
-deleted "their office" from a line because that passage was softly spoken and
-fell under a global loudness floor. A real pause has no word in it — that's now
-the test. Same bug in filler removal, where padding past an "uh" swallowed
-"nobody". The envelope tells you where energy is, not where words are.
-
-**Stitched playback is harder than it looks.** `currentTime` still reports the
-old position while a seek is in flight, so the clip-boundary check re-fired
-instantly and chained through the whole reel — a 25-second cut collapsed to 14.
-
-**A transcript without media.** An agent handing us someone else's transcript
-used to leave the previous audio loaded — playing NASA under their words, every
-timestamp pointing at the wrong sound. There's now an explicit text-only mode
-that does everything except hear it.
-
-## What we learned
-
-Encoding *editorial craft* turned out to matter more than adding tools. The
-tools that make the difference — energy, breath, flow, the human's votes — are
-the ones that carry judgment, not the ones that carry actions.
-
-## Honest limits
-
-- **The tools have only ever been called by an agent in Chrome 149+.** Every
-  documented requirement for ChatGPT's browser is met and verified — origin
-  isolation, `Permissions-Policy: tools=(self)`, registration on
-  `document.modelContext` before first paint — and site tools were enabled on
-  GPT-5.6 Terra. It still reported the bridge as unavailable to it. The Chrome
-  path is the one demonstrated, and `bin/verify.sh` proves it end to end.
-- **A judge with no WebMCP browser** gets a scripted demo of the real tool calls,
-  and a heuristic "suggest cuts from the text" fallback that is deliberately
-  labelled as reading only the words. It's visibly worse than the agent, which
-  is the point.
-- **547 transcript lines all live in the DOM.** Word-level spans are built as
-  rows come into view, which keeps a full re-render at ~17ms, but a three-hour
-  recording would want real virtualisation.
-- **Rendered video is a *fragmented* MP4** (H.264 + AAC, 1080×1920) — that's
-  what MediaRecorder emits. Browsers and most players open it; QuickTime is
-  occasionally fussy, so the tool hands back the one-line stream copy that fixes
-  it. For anything you'd publish from real video source, take `getCutManifest`
-  and the ffmpeg command it gives you — which has been run and checked.
-
-## What's next
-
-Speaker diarisation, so "more of her, less of him" becomes a real instruction.
-In-browser transcription, to close the media-only gap.
+Vanilla JavaScript, no build step, no backend, no API keys. GSAP for motion. whisper.cpp with a verbatim prompt for the transcript (the default run silently strips every "um"; the prompted run keeps 220 of them — which is exactly what the cleanup tools exist to remove). Demo material is NASA's *Houston We Have a Podcast* ep. 327, public domain. Deployed static on Vercel.
 
 ## Try it
 
-Open https://cutroom-webmcp.vercel.app in **Chrome 149+** with
-`chrome://flags/#enable-webmcp-testing`, or ChatGPT's browser where site tools
-are available. The pill reads **"33 tools live"** on success. `bin/verify.sh`
-drives the tools over CDP and prints what came back.
+**Live:** https://cutroom-webmcp.vercel.app — open in Chrome 149+ with `chrome://flags/#enable-webmcp-testing`, or ChatGPT's browser. The pill reads **"33 tools live"** on success. Click **"What is this?"** for the scripted demo; add `?present` to the URL to step through it manually.
 
-Without any agent it still works by hand, and an agent that can only *fetch*
-gets `/.well-known/mcp.json` and the transcript so it can still return real
-timestamps rather than inventing them.
+**Source:** https://github.com/heynaavi/cutRoom-webMCP (MIT)
 
-Add `?present` to the URL for presenter mode: the demo then holds each step
-until you press `→`, which is how the video was recorded.
+**Agent prompt to try:** *"Call listCapabilities first, then find me 60 seconds on how she went from electrician to astronaut — propose two angles, play the better one, clean it up and give me the timestamps."*
+================================================================
+
+BUILT WITH  (tags — type each, press Enter)
+javascript · webmcp · gsap · ffmpeg · whisper · vercel · mediarecorder · web-audio
+
+"TRY IT OUT" LINKS
+https://cutroom-webmcp.vercel.app
+https://github.com/heynaavi/cutRoom-webMCP
+
+VIDEO DEMO LINK
+Your YouTube link (upload cutroom-demo.mp4, Public).
+Fallback if asked for a second link: https://cutroom-webmcp.vercel.app/demo.mp4
+
+════════════════════════════════════════════════════════════════════
+STEP 4 · ADDITIONAL INFO
+════════════════════════════════════════════════════════════════════
+If it asks for testing instructions, paste:
+
+Open https://cutroom-webmcp.vercel.app in Chrome 149+ with chrome://flags/#enable-webmcp-testing enabled (or ChatGPT's browser on GPT-5.6 Sol/Terra with Site tools on). The top-right pill reads "33 tools live". Click "What is this?" → "Watch it work" for a scripted run of the real tools, or ask your agent: "Call listCapabilities, then find me 60 seconds on how she went from electrician to astronaut, propose two angles, play the better one, clean it up, give me the timestamps." Without an agent, the Cuts tab's "Suggest cuts from the text" builds a baseline you can compare against. bin/verify.sh in the repo drives all tools over CDP and prints the results.
+
+If it asks for the repo / license: MIT, LICENSE file at repo root.
+If it asks which browser you tested in: Google Chrome 151 with --enable-features=WebMCP.
+
+Send me a screenshot of any question you're not sure about.
