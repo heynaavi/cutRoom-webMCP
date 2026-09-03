@@ -19,6 +19,8 @@ const Store = (() => {
     tab: "transcript",
     query: "",
     log: [],               // {tool, arg, at}
+    textOnly: false,       // a transcript with no media loaded
+    userSource: false,     // their material, or the bundled demo episode?
   };
 
   const subs = [];

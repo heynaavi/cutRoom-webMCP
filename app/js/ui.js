@@ -776,6 +776,7 @@ function loadSource(data, mediaUrl) {
     PEAKS = null; window.PEAKS = null;
     Store.state.textOnly = true;
   }
+  Store.state.userSource = true;      // from here on, audio-only is a legitimate follow-up
   $("#srcTitle").textContent = data.title;
   $("#srcDur").textContent = `${Math.round(data.durationSec / 60)} min · ${data.segments.length} lines`
     + (Store.state.textOnly ? " · no audio" : "");
@@ -802,6 +803,23 @@ function renderTextOnly() {
   renderCaption(Player.time || 0);
 }
 
+/* Audio on its own is only meaningful as the second half of "transcript first,
+   media after" — their words, waiting for their sound. Against the bundled
+   episode it is a trap: the reel would keep NASA's 547 timestamps and play
+   somebody else's recording underneath them, so every clip points at the wrong
+   audio. Same class of bug as an agent handing over a transcript with no media,
+   which is why that one grew an explicit text-only mode. Refuse it and say why. */
+function addMediaOnly(mediaUrl, mediaName) {
+  if (!Store.state.userSource) {
+    toast(`“${mediaName}” is audio with no transcript — it would play under the demo episode's timestamps. Add an SRT or VTT with it.`);
+    return false;
+  }
+  Player.el.src = mediaUrl; Player.el.load(); PEAKS = null; window.PEAKS = null;
+  Store.state.textOnly = false; renderTextOnly(); paint(0);
+  toast(`Audio added — ${mediaName}. Press Space to hear the cut.`);
+  return true;
+}
+
 /* Drop your own material. Nothing uploads — createObjectURL keeps it local. */
 function wireDrop() {
   const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
@@ -819,13 +837,7 @@ function wireDrop() {
     try {
       const { data, mediaUrl, mediaName } = await Ingest.fromFiles([...e.dataTransfer.files]);
       if (data) loadSource(data, mediaUrl);
-      else if (mediaUrl) {
-        // Audio dropped on its own — the common second half of "text first,
-        // media after", so keep the transcript and just add the sound.
-        Player.el.src = mediaUrl; Player.el.load(); PEAKS = null; window.PEAKS = null;
-        Store.state.textOnly = false; renderTextOnly(); paint(0);
-        toast(`Audio added — ${mediaName}. Press Space to hear the cut.`);
-      }
+      else if (mediaUrl) addMediaOnly(mediaUrl, mediaName);
       else toast("Drop a media file and an SRT/VTT transcript.");
     } catch (err) { toast(err.message || "Could not read that file."); }
   });
@@ -897,11 +909,8 @@ async function boot() {
       try {
         const { data, mediaUrl, mediaName } = await Ingest.fromFiles([...filePick.files]);
         if (data) loadSource(data, mediaUrl);
-        else if (mediaUrl) {
-          Player.el.src = mediaUrl; Player.el.load(); PEAKS = null; window.PEAKS = null;
-          Store.state.textOnly = false; renderTextOnly(); paint(0);
-          toast(`Audio added — ${mediaName}`);
-        } else toast("Pick a media file and an SRT/VTT transcript.");
+        else if (mediaUrl) addMediaOnly(mediaUrl, mediaName);
+        else toast("Pick a media file and an SRT/VTT transcript.");
       } catch (err) { toast(err.message || "Could not read that file."); }
       filePick.value = "";
     };
