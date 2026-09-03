@@ -525,7 +525,7 @@
         Store.logTool("renderVideo", `${Math.round(Store.reelDur())}s`);
         const r = await UI.renderVideo();
         if (!r?.ok) return note(`Couldn't render: ${r?.error || "unknown error"}`);
-        return note(`Rendered “${r.name}” — ${r.seconds}s, ${r.mb} MB, 1080×1920 with burned-in captions. It's saved to their downloads.`);
+        return note(`Rendered “${r.name}” — ${r.seconds}s, ${r.mb} MB, 1080×1920 with burned-in captions. It's saved to their downloads. ${r.note || ""}`.trim());
       },
     },
     {

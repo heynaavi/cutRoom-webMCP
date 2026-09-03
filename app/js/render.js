@@ -4,7 +4,7 @@
    Everything upstream produces a decision: these spans, in this order. This is
    the part that makes the decision a thing you can post. Canvas draws the
    audiogram frame by frame, MediaRecorder muxes it with the real audio, and
-   the person gets a vertical .webm on disk. No server, no upload, no queue.
+   the person gets a vertical MP4 on disk. No server, no upload, no queue.
 
    It records in real time because the audio has to actually play through the
    graph — a 40-second cut takes 40 seconds. That's the honest cost, so the UI
@@ -115,8 +115,18 @@ const Render = (() => {
       const stream = canvas.captureStream(30);
       a.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
 
-      const type = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
-        .find((t) => MediaRecorder.isTypeSupported(t)) || "video/webm";
+      // MP4 first, and not for tidiness: QuickTime has never supported WebM, so
+      // a .webm is a file a Mac user cannot open by double-clicking it. Chrome
+      // will record H.264+AAC if you ask with the full codec string — the short
+      // forms ("avc1,mp4a", "h264,aac") report false even where MP4 works.
+      const type = [
+        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",   // H.264 baseline + AAC-LC
+        "video/mp4",
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm",
+      ].find((t) => MediaRecorder.isTypeSupported(t)) || "video/webm";
+      const ext = type.startsWith("video/mp4") ? "mp4" : "webm";
       const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 6_000_000 });
       const chunks = [];
       rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
@@ -158,11 +168,20 @@ const Render = (() => {
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url; link.download = `${slug}-short.webm`;
+      link.href = url; link.download = `${slug}-short.${ext}`;
       document.body.appendChild(link); link.click(); link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
 
-      return { ok: true, name: `${slug}-short.webm`, seconds: +total.toFixed(1), mb: +(blob.size / 1e6).toFixed(1) };
+      // MediaRecorder emits a FRAGMENTED mp4 (moof/mdat pairs). Browsers, HLS
+      // and most players are happy with it; QuickTime and some upload pipelines
+      // are not, reliably. The fix is a stream copy — no re-encode, instant —
+      // so hand it over rather than letting them find out on their own.
+      const remux = `ffmpeg -i ${slug}-short.${ext} -c copy -movflags +faststart ${slug}.mp4`;
+      return { ok: true, name: `${slug}-short.${ext}`, seconds: +total.toFixed(1),
+               mb: +(blob.size / 1e6).toFixed(1), container: ext,
+               note: ext === "mp4"
+                 ? `H.264 + AAC. It's a fragmented MP4, which QuickTime is occasionally fussy about — if it won't open, remux it (no re-encode): ${remux}`
+                 : `This browser would only record WebM, which QuickTime cannot open at all. Play it in VLC or Chrome, or convert: ffmpeg -i ${slug}-short.webm -c:v libx264 -c:a aac ${slug}.mp4` };
     } catch (err) {
       return { ok: false, error: String(err).slice(0, 160) };
     } finally { busy = false; }

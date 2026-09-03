@@ -80,12 +80,25 @@ that responds to *that* is reading taste, not executing a task.
 Everything upstream produces a decision — these spans, in this order.
 `renderVideo` turns that into a file you can post: canvas draws the audiogram
 frame by frame, MediaRecorder muxes it with the real audio, and a 1080×1920
-`.webm` lands in your downloads. No server, no upload, no queue.
+**H.264 + AAC MP4** lands in your downloads. No server, no upload, no queue.
 
 It records in real time, because the audio has to play through the graph to be
 captured — a 40-second cut takes 40 seconds. The UI says so rather than looking
-hung. (One known wrinkle: MediaRecorder writes an odd frame-rate into the WebM
-header, so some upload pipelines may want a remux.)
+hung.
+
+MP4 is asked for with the full codec string — `video/mp4;codecs=avc1.42E01E,
+mp4a.40.2`. The short forms (`avc1,mp4a`, `h264,aac`) report unsupported even
+where MP4 works, which is how you end up shipping WebM by accident and handing
+Mac users a file QuickTime has never been able to open. WebM is still the
+fallback where MP4 recording isn't available, and the result says so.
+
+One wrinkle that remains: MediaRecorder emits a *fragmented* MP4 (`moof`/`mdat`
+pairs). Browsers and most players are fine with it; QuickTime is occasionally
+not. The tool hands back the stream-copy that fixes it — no re-encode, instant:
+
+```bash
+ffmpeg -i cut-short.mp4 -c copy -movflags +faststart cut.mp4
+```
 
 ## Why the audio matters
 

@@ -150,8 +150,11 @@ the ones that carry judgment, not the ones that carry actions.
 - **547 transcript lines all live in the DOM.** Word-level spans are built as
   rows come into view, which keeps a full re-render at ~17ms, but a three-hour
   recording would want real virtualisation.
-- **Rendered video is `.webm`** via canvas + MediaRecorder. For anything you'd
-  publish, take `getCutManifest` and the ffmpeg command it hands you.
+- **Rendered video is a *fragmented* MP4** (H.264 + AAC, 1080×1920) — that's
+  what MediaRecorder emits. Browsers and most players open it; QuickTime is
+  occasionally fussy, so the tool hands back the one-line stream copy that fixes
+  it. For anything you'd publish from real video source, take `getCutManifest`
+  and the ffmpeg command it gives you — which has been run and checked.
 
 ## What's next
 
