@@ -83,6 +83,21 @@ p.sub { font-size:29px; line-height:1.42; color:var(--muted); max-width:30ch; ma
 .ears b { font-family:"JB",monospace; font-size:38px; font-weight:600; color:var(--accent); }
 .ears span { font-size:26px; color:var(--muted); }
 
+/* 08 — all 33, grouped, so a wall of names reads as a map of the product */
+.all { padding:96px 120px 0; display:flex; flex-direction:column; }
+.card.on.all { display:flex; }
+.all-head { display:flex; justify-content:space-between; align-items:flex-end; gap:40px; }
+.all-key { font-family:"JB",monospace; font-size:20px; letter-spacing:.08em; color:var(--muted);
+           display:flex; align-items:center; gap:12px; padding-bottom:14px; }
+.all-key i { width:14px; height:14px; border-radius:50%; background:var(--accent); display:block; }
+.all-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:44px 40px; margin-top:58px;
+            padding-top:40px; border-top:2px solid rgba(44,42,38,.13); }
+.grp { display:flex; flex-direction:column; gap:9px; }
+.grp b { font-family:"SG",sans-serif; font-weight:600; font-size:27px; letter-spacing:-.01em; color:var(--text); margin-bottom:8px; }
+.grp span { font-family:"JB",monospace; font-size:24px; color:var(--muted); }
+.grp span.hot { color:var(--accent); font-weight:600; }
+.grp span.hot::before { content:"● "; font-size:14px; vertical-align:middle; }
+
 /* closer */
 .mark { display:flex; gap:14px; align-items:flex-end; height:120px; margin-bottom:54px; }
 .mark span { width:22px; background:var(--accent); border-radius:11px; display:block; }
@@ -172,8 +187,35 @@ p.sub { font-size:29px; line-height:1.42; color:var(--muted); max-width:30ch; ma
   <div class="win phone"><div class="bar"><i></i><i></i><i></i><span>renderVideo · 1080 × 1920 · H.264</span></div><img src="gallery-src/short-frame.jpg"></div>
 </section>
 
-<!-- 08 · closer -->
-<section class="card stmt center" id="c08">
+<!-- 08 · every tool, by what it does -->
+<section class="card all" id="c08">
+  <div class="all-head">
+    <div>
+      <div class="kicker">All 33</div>
+      <h1 style="font-size:74px;max-width:16ch">Every tool, by what it does.</h1>
+    </div>
+    <div class="all-key"><i></i> reads the audio, not the transcript</div>
+  </div>
+  <div class="all-grid">
+    <div class="grp"><b>Find</b>
+      <span>getSource</span><span>searchTranscript</span><span>readTranscript</span><span>findPhrase</span><span class="hot">findEnergyMoments</span></div>
+    <div class="grp"><b>Propose</b>
+      <span>proposeCut</span><span>getCandidates</span><span>playCandidate</span><span>addPhrase</span></div>
+    <div class="grp"><b>Shape</b>
+      <span>addSpan</span><span>removeClip</span><span>reorderClip</span><span>trimClip</span><span>reshapeClip</span><span>tidyClip</span><span class="hot">snapToBreath</span><span>setClipRole</span><span>fitToBudget</span></div>
+    <div class="grp"><b>Clean</b>
+      <span class="hot">tightenClip</span><span>omitPhrase</span><span class="hot">cleanUpCut</span><span>redactPhrase</span><span>redactRange</span></div>
+    <div class="grp"><b>Read the person</b>
+      <span>getReelState</span><span>getWorkflowState</span><span>listCapabilities</span></div>
+    <div class="grp"><b>Ship</b>
+      <span>playReel</span><span class="hot">checkFlow</span><span>exportCut</span><span>renderVideo</span><span>getCutManifest</span></div>
+    <div class="grp"><b>Bring in · take back</b>
+      <span>loadTranscript</span><span>undoLastChange</span></div>
+  </div>
+</section>
+
+<!-- 09 · closer -->
+<section class="card stmt center" id="c09">
   <div class="mark"><span style="height:62%"></span><span style="height:100%"></span><span style="height:44%"></span><span style="height:78%"></span></div>
   <div class="wordmark">Cut<em>room</em></div>
   <div class="url">cutroom-webmcp.vercel.app</div>

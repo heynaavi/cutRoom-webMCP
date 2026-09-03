@@ -20,7 +20,7 @@ mkdirSync(OUT, { recursive: true });
 const CARDS = [
   ["c01", "01-the-problem"], ["c02", "02-it-can-hear"], ["c03", "03-it-proposes-you-decide"],
   ["c04", "04-cleanup-visible"], ["c05", "05-checks-itself"], ["c06", "06-33-tools"],
-  ["c07", "07-the-output"], ["c08", "08-closer"],
+  ["c07", "07-the-output"], ["c08", "08-all-33-tools"], ["c09", "09-closer"],
 ];
 
 const tgt = await j(`/json/new?about:blank`, { method: "PUT" });
