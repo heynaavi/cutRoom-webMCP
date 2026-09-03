@@ -1,0 +1,18 @@
+const BASE="http://127.0.0.1:9222";
+const j=(p,o)=>fetch(BASE+p,o).then(r=>r.json());
+const [U,OUT]=process.argv.slice(2);
+const tgt=await j(`/json/new?about:blank`,{method:"PUT"});
+const ws=new WebSocket(tgt.webSocketDebuggerUrl);
+await new Promise((ok,no)=>{ws.onopen=ok;ws.onerror=no});
+let id=0;const pend=new Map();
+ws.onmessage=m=>{const d=JSON.parse(m.data);if(d.id&&pend.has(d.id)){pend.get(d.id)(d);pend.delete(d.id)}};
+const send=(m,p={})=>new Promise(ok=>{const i=++id;pend.set(i,ok);ws.send(JSON.stringify({id:i,method:m,params:p}))});
+await send("Page.enable");
+await send("Emulation.setDeviceMetricsOverride",{width:1920,height:1080,deviceScaleFactor:1,mobile:false});
+await send("Page.navigate",{url:U});
+await new Promise(r=>setTimeout(r,2500));
+const s=await send("Page.captureScreenshot",{format:"png"});
+const {writeFileSync}=await import("node:fs");
+writeFileSync(OUT, Buffer.from(s.result.data,"base64"));
+console.log("wrote", OUT);
+ws.close();process.exit(0);

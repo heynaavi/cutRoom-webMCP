@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>slot</title>
+<style>
+@font-face { font-family:"SG"; src:url("../app/fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; }
+@font-face { font-family:"DM"; src:url("../app/fonts/DMSans-VariableFont_opsz,wght.ttf") format("truetype"); font-weight:100 900; }
+@font-face { font-family:"JB"; src:url("../app/fonts/JetBrainsMono-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; }
+:root { --bg:#e6e0cf; --surface-2:#dcd4c0; --text:#211f1a; --muted:#5a574e; --faint:#948d7a; --accent:#c4582f; }
+*,*::before,*::after { box-sizing:border-box; }
+html,body { margin:0; width:1920px; height:1080px; overflow:hidden; background:var(--bg);
+            font-family:"DM",sans-serif; color:var(--text); -webkit-font-smoothing:antialiased; }
+body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:.30;
+  background-image:radial-gradient(circle at 1px 1px, rgba(44,42,38,.16) 1px, transparent 0);
+  background-size:6px 6px; mix-blend-mode:multiply; }
+.wrap { display:flex; height:100%; align-items:center; padding:0 130px; gap:110px; }
+.left { flex:1; }
+.kicker { font-family:"JB",monospace; font-size:22px; letter-spacing:.22em; text-transform:uppercase;
+          color:var(--accent); margin-bottom:34px; }
+h2 { font-family:"SG",sans-serif; font-weight:600; letter-spacing:-.028em; font-size:76px;
+     line-height:1.08; margin:0; max-width:14ch; }
+ul { list-style:none; padding:0; margin:52px 0 0; }
+li { font-family:"JB",monospace; font-size:27px; color:var(--muted); padding:13px 0;
+     border-top:2px solid rgba(44,42,38,.13); letter-spacing:.02em; }
+li b { color:var(--text); font-weight:600; }
+/* The slot the rendered short is composited into. Its rect is the contract with
+   assemble.mjs — 540×960 at 1180,60 — so the shadow is drawn here and the video
+   is laid straight on top of it. */
+.slot { position:relative; width:540px; height:960px; border-radius:26px;
+        background:#171613; box-shadow:0 40px 90px rgba(60,40,20,.28), 0 0 0 1px rgba(44,42,38,.16); }
+</style></head><body>
+<div class="wrap">
+  <div class="left">
+    <div class="kicker">The output</div>
+    <h2>It hands back a file, not a suggestion.</h2>
+    <ul>
+      <li><b>1080 × 1920</b> · H.264 + AAC</li>
+      <li>burned-in captions, word by word</li>
+      <li>rendered <b>in the browser</b> — no server, no upload</li>
+      <li>or take the <b>ffmpeg</b> command and cut it yourself</li>
+    </ul>
+  </div>
+  <div class="slot"></div>
+</div>
+</body></html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<title>Cutroom — film cards</title>
+<script src="lib/gsap.min.js"></script>
+<style>
+@font-face { font-family:"SG"; src:url("../app/fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; }
+@font-face { font-family:"DM"; src:url("../app/fonts/DMSans-VariableFont_opsz,wght.ttf") format("truetype"); font-weight:100 900; }
+@font-face { font-family:"JB"; src:url("../app/fonts/JetBrainsMono-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; }
+
+:root {
+  --bg:#e6e0cf; --surface:#f8f5ed; --surface-2:#dcd4c0; --raised:#fffdf8;
+  --text:#211f1a; --text-2:#3c3a33; --muted:#5a574e; --faint:#948d7a;
+  --accent:#c4582f; --ghost:#3f6b8a; --on-accent:#fffaf2;
+  --hairline:rgba(44,42,38,.13);
+}
+*,*::before,*::after { box-sizing:border-box; }
+html,body { margin:0; padding:0; width:1920px; height:1080px; overflow:hidden; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:"DM",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+/* The paper grain the app uses on its preview card, at film scale. */
+body::after {
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.30;
+  background-image:radial-gradient(circle at 1px 1px, rgba(44,42,38,.16) 1px, transparent 0);
+  background-size:6px 6px; mix-blend-mode:multiply;
+}
+.scene {
+  position:fixed; inset:0; display:none;
+  padding:120px 150px; flex-direction:column; justify-content:center;
+}
+.scene.on { display:flex; }
+
+/* ── shared type ─────────────────────────────────────────────────────────── */
+.kicker {
+  font-family:"JB",monospace; font-size:22px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:34px;
+}
+h1 {
+  font-family:"SG",sans-serif; font-weight:600; letter-spacing:-.03em;
+  font-size:110px; line-height:1.02; margin:0; color:var(--text);
+}
+h2 {
+  font-family:"SG",sans-serif; font-weight:600; letter-spacing:-.028em;
+  font-size:82px; line-height:1.08; margin:0; color:var(--text); max-width:22ch;
+}
+p.lede {
+  font-size:38px; line-height:1.45; color:var(--muted); max-width:30ch;
+  margin:44px 0 0;
+}
+.accent { color:var(--accent); }
+.mono { font-family:"JB",monospace; }
+em.wm { font-style:normal; color:var(--accent); }
+
+/* ── 1 · title ───────────────────────────────────────────────────────────── */
+#s1 { align-items:center; justify-content:center; text-align:center; }
+.wordmark {
+  font-family:"SG",sans-serif; font-weight:700; letter-spacing:-.04em;
+  font-size:200px; line-height:1; color:var(--text);
+}
+.tagline { font-size:44px; color:var(--muted); margin-top:28px; letter-spacing:-.01em; }
+.chip {
+  display:inline-flex; align-items:center; gap:16px; margin-top:52px;
+  padding:16px 30px; border:2px solid var(--hairline); border-radius:100px;
+  font-family:"JB",monospace; font-size:24px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--muted); background:var(--surface);
+}
+.chip i { width:14px; height:14px; border-radius:50%; background:#557a4a; display:block; }
+.mark { display:flex; gap:14px; align-items:flex-end; height:120px; margin-bottom:56px; }
+.mark span { width:22px; background:var(--accent); border-radius:11px; display:block; }
+
+/* ── 2 · the problem ─────────────────────────────────────────────────────── */
+.bignum {
+  font-family:"SG",sans-serif; font-weight:700; letter-spacing:-.045em;
+  font-size:230px; line-height:.94; color:var(--text);
+}
+.bignum small { font-size:74px; font-weight:500; color:var(--muted); letter-spacing:-.02em; }
+.hourbar {
+  position:relative; height:150px; border-radius:16px;
+  background:var(--surface-2); overflow:hidden; margin-top:56px;
+}
+.ticks { position:absolute; inset:0; }
+.ticks i { position:absolute; top:38px; bottom:38px; width:2px; background:var(--text); opacity:.16; }
+.hourbar b {
+  position:absolute; top:16px; bottom:16px; min-width:12px; border-radius:7px;
+  background:var(--accent); box-shadow:0 0 0 6px var(--surface-2);
+}
+.barlabel {
+  display:flex; justify-content:space-between; margin-top:22px;
+  font-family:"JB",monospace; font-size:24px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted);
+}
+
+/* ── 3 · the tools ───────────────────────────────────────────────────────── */
+.codeline {
+  font-family:"JB",monospace; font-size:52px; color:var(--text);
+  background:var(--surface); border:2px solid var(--hairline); border-radius:18px;
+  padding:34px 44px; display:inline-block; margin-top:20px;
+}
+.codeline .k { color:var(--accent); }
+.toolgrid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:14px 26px; margin-top:56px;
+  font-family:"JB",monospace; font-size:26px; color:var(--muted);
+}
+.toolgrid span.hot { color:var(--accent); font-weight:600; }
+
+/* ── 5 · it can hear ─────────────────────────────────────────────────────── */
+.split { display:flex; gap:110px; align-items:center; margin-top:60px; }
+.half { flex:1; }
+.half .n {
+  font-family:"SG",sans-serif; font-weight:700; font-size:170px; line-height:1;
+  letter-spacing:-.04em;
+}
+.half .w { font-size:34px; color:var(--muted); margin-top:14px; line-height:1.35; }
+.half.dim .n { color:var(--faint); }
+.half.hot .n { color:var(--accent); }
+.envelope { display:flex; align-items:flex-end; gap:5px; height:190px; margin-top:56px; }
+.envelope i { flex:1; background:var(--accent); border-radius:4px; opacity:.30; }
+.envelope i.peak { opacity:1; }
+
+/* ── 8 · consent ─────────────────────────────────────────────────────────── */
+.cards { display:flex; gap:26px; margin-top:66px; }
+.pcard {
+  flex:1; border:3px dashed var(--ghost); border-radius:20px; padding:32px;
+  background:rgba(63,107,138,.07); min-height:230px;
+}
+.pcard .t { font-family:"JB",monospace; font-size:22px; letter-spacing:.16em;
+            text-transform:uppercase; color:var(--ghost); margin-bottom:18px; }
+.pcard .x { font-size:28px; line-height:1.4; color:var(--text-2); }
+
+/* ── 12 · deliverable ────────────────────────────────────────────────────── */
+.term {
+  background:#171613; border-radius:20px; padding:44px 50px; margin-top:52px;
+  font-family:"JB",monospace; font-size:30px; line-height:1.65; color:#ece7dc;
+  overflow:hidden; box-shadow:0 30px 80px rgba(60,40,20,.22);
+}
+.term .c { color:#e0724a; }
+.term .g { color:#8fae83; }
+.term .d { color:#6b655a; }
+
+/* ── 13 · end ────────────────────────────────────────────────────────────── */
+#s13 { align-items:center; justify-content:center; text-align:center; }
+.url {
+  font-family:"JB",monospace; font-size:46px; color:var(--accent);
+  margin-top:40px; letter-spacing:-.01em;
+}
+.sub { font-family:"JB",monospace; font-size:26px; color:var(--muted);
+       margin-top:26px; letter-spacing:.14em; text-transform:uppercase; }
+</style>
+</head>
+<body>
+
+<!-- 1 · TITLE ─────────────────────────────────────────────────────────────── -->
+<section class="scene" id="s1">
+  <div class="mark" id="m1">
+    <span style="height:62%"></span><span style="height:100%"></span>
+    <span style="height:44%"></span><span style="height:78%"></span>
+  </div>
+  <div class="wordmark">Cut<em class="wm">room</em></div>
+  <div class="tagline">Find the short inside the hour.</div>
+  <div class="chip"><i></i>33 WebMCP tools · live in the page</div>
+</section>
+
+<!-- 2 · THE PROBLEM ──────────────────────────────────────────────────────── -->
+<section class="scene" id="s2">
+  <div class="kicker" data-k>The problem</div>
+  <div style="display:flex;align-items:baseline;gap:60px">
+    <div class="bignum" id="n38">38<small> minutes</small></div>
+    <div class="bignum" id="n547">547<small> lines</small></div>
+  </div>
+  <div class="hourbar" id="bar">
+    <div class="ticks" id="ticks"></div>
+  </div>
+  <div class="barlabel"><span id="bl1">one episode, end to end</span><span id="bl2">38:29</span></div>
+  <h2 style="margin-top:64px;font-size:70px" id="s2h">Five of those lines, in the right order, are a story.</h2>
+</section>
+
+<!-- 3 · WHAT IT IS ───────────────────────────────────────────────────────── -->
+<section class="scene" id="s3">
+  <div class="kicker" data-k>What it is</div>
+  <h2 id="s3h">An ordinary web page that hands its tools to whatever agent walks in.</h2>
+  <div class="codeline" id="s3code">
+    <span class="k">document</span>.modelContext.<span class="k">registerTool</span>(…) <span style="color:var(--faint)">× 33</span>
+  </div>
+  <div class="toolgrid" id="s3grid"></div>
+</section>
+
+<!-- 5 · IT CAN HEAR ──────────────────────────────────────────────────────── -->
+<section class="scene" id="s5">
+  <div class="kicker" data-k>The part that matters</div>
+  <h2 id="s5h">Five of the thirty-three don't read the transcript at all.</h2>
+  <div class="envelope" id="env"></div>
+  <p class="lede" id="s5p" style="max-width:44ch">
+    They read the waveform. The best moment in an hour is rarely the smartest
+    sentence — it's the one with the most life in it, and no text search can find that.
+  </p>
+</section>
+
+<!-- 8 · CONSENT ──────────────────────────────────────────────────────────── -->
+<section class="scene" id="s8">
+  <div class="kicker" data-k>Nothing is committed</div>
+  <h2 id="s8h">The agent proposes. You decide.</h2>
+  <div class="cards" id="s8cards">
+    <div class="pcard"><div class="t">Proposed</div><div class="x">where she started — the family trade</div></div>
+    <div class="pcard"><div class="t">Proposed</div><div class="x">the teacher who changed it</div></div>
+    <div class="pcard"><div class="t">Proposed</div><div class="x">applied anyway, against the odds</div></div>
+  </div>
+  <p class="lede" id="s8p" style="max-width:52ch;font-size:34px">
+    Dashed means pending. A thumbs-down or a nudge goes back through
+    <span class="mono accent">getReelState</span> — it revises to your taste, not its own.
+  </p>
+</section>
+
+<!-- 12 · THE DELIVERABLE ─────────────────────────────────────────────────── -->
+<section class="scene" id="s12">
+  <div class="kicker" data-k>The deliverable</div>
+  <h2 id="s12h">Five clips became nine exact spans.</h2>
+  <div class="term" id="s12term">
+    <div class="l"><span class="d">$</span> <span class="c">getCutManifest</span> <span class="d">{}</span></div>
+    <div class="l"><span class="g">9 spans · 30.5s · every in/out to a hundredth</span></div>
+    <div class="l">&nbsp;</div>
+    <div class="l"><span class="d">$</span> ffmpeg -i INPUT -af "aselect='between(t,321.000,327.990)+…'" OUT.mp4</div>
+    <div class="l"><span class="g">→ 30.53s. It runs.</span></div>
+  </div>
+</section>
+
+<!-- 13 · END ─────────────────────────────────────────────────────────────── -->
+<section class="scene" id="s13">
+  <div class="mark" id="m13">
+    <span style="height:62%"></span><span style="height:100%"></span>
+    <span style="height:44%"></span><span style="height:78%"></span>
+  </div>
+  <div class="wordmark" style="font-size:150px">Cut<em class="wm">room</em></div>
+  <div class="url" id="s13url">cutroom-webmcp.vercel.app</div>
+  <div class="sub" id="s13sub">33 tools · document.modelContext · MIT</div>
+</section>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Every scene is one paused GSAP timeline. The renderer seeks it to an exact
+   time and screenshots — so frames are identical whether the machine draws in
+   4ms or 400, and a slow font load can't shear a tween across two frames.
+   ═══════════════════════════════════════════════════════════════════════════ */
+gsap.ticker.remove(gsap.updateRoot);      // nothing advances on its own
+
+const TOOLS = ["getSource","searchTranscript","readTranscript","getReelState","proposeCut",
+  "addSpan","removeClip","reorderClip","trimClip","getCandidates","exportCut","undoLastChange",
+  "findEnergyMoments","checkFlow","snapToBreath","setClipRole","tidyClip","fitToBudget",
+  "playCandidate","renderVideo","findPhrase","addPhrase","reshapeClip","listCapabilities",
+  "tightenClip","omitPhrase","redactPhrase","redactRange","cleanUpCut","getCutManifest",
+  "getWorkflowState","playReel","loadTranscript"];
+const AUDIO = new Set(["findEnergyMoments","snapToBreath","tightenClip","cleanUpCut","checkFlow"]);
+document.getElementById("s3grid").innerHTML =
+  TOOLS.map(t => `<span class="${AUDIO.has(t) ? "hot" : ""}">${t}</span>`).join("");
+
+/* The real episode's shape: 547 lines, and the five the demo cuts. */
+const LINES = 547, DUR = 2309.76;
+const CLIPS = [321, 461.56, 996.24, 1122.08, 1891.7];
+const ticks = document.getElementById("ticks");
+let html = "";
+for (let i = 0; i < LINES; i++) html += `<i style="left:${((i / LINES) * 100).toFixed(3)}%"></i>`;
+ticks.innerHTML = html;
+const bar = document.getElementById("bar");
+CLIPS.forEach((t) => {
+  const b = document.createElement("b");
+  b.style.left = `${((t / DUR) * 100).toFixed(3)}%`;
+  bar.appendChild(b);
+});
+
+/* A plausible RMS envelope with the real peak sitting where 29:38 does. */
+const env = document.getElementById("env");
+const N = 96, peakAt = Math.round(N * 0.77);
+let ehtml = "";
+for (let i = 0; i < N; i++) {
+  const base = 0.30 + 0.22 * Math.abs(Math.sin(i * 0.7)) + 0.12 * Math.abs(Math.sin(i * 0.23));
+  const lift = Math.exp(-Math.pow((i - peakAt) / 3.4, 2)) * 0.62;
+  const h = Math.min(1, base + lift);
+  ehtml += `<i class="${Math.abs(i - peakAt) <= 3 ? "peak" : ""}" style="height:${(h * 100).toFixed(1)}%"></i>`;
+}
+env.innerHTML = ehtml;
+
+const q = (s, r = document) => r.querySelector(s);
+const qa = (s, r = document) => [...r.querySelectorAll(s)];
+
+/* Each entry: the scene's element id, its length in seconds, and a builder
+   returning a paused timeline. */
+const SCENES = {
+  s1: { sec: 8, build() {
+    const t = gsap.timeline({ paused: true });
+    t.from("#m1 span", { scaleY: 0, transformOrigin: "bottom", duration: .7, ease: "back.out(2)", stagger: .09 }, 0)
+     .from(".wordmark", { y: 44, opacity: 0, duration: .9, ease: "power3.out" }, .35)
+     .from(".tagline", { y: 22, opacity: 0, duration: .8, ease: "power3.out" }, .62)
+     .from(".chip", { y: 20, opacity: 0, duration: .8, ease: "power3.out" }, .85)
+     .to("#s1 .chip i", { opacity: .35, duration: .5, yoyo: true, repeat: 6, ease: "sine.inOut" }, 1.6)
+     .to("#s1", { opacity: 0, duration: .55, ease: "power2.in" }, 7.3);
+    return t;
+  }},
+
+  s2: { sec: 17, build() {
+    const t = gsap.timeline({ paused: true });
+    t.from("#s2 .kicker", { y: 16, opacity: 0, duration: .6, ease: "power3.out" }, 0)
+     .from("#n38", { y: 40, opacity: 0, duration: .8, ease: "power3.out" }, .25)
+     .from("#n547", { y: 40, opacity: 0, duration: .8, ease: "power3.out" }, .75)
+     .from("#bar", { scaleX: .2, opacity: 0, transformOrigin: "left center", duration: .9, ease: "power3.out" }, 1.5)
+     // 547 ticks as one clip-path sweep: the same picture as 547 staggered
+     // tweens, at a fortieth of the cost.
+     .fromTo("#ticks", { clipPath: "inset(0 100% 0 0)" },
+                       { clipPath: "inset(0 0% 0 0)", duration: 1.5, ease: "power2.inOut" }, 2.1)
+     .from(".barlabel", { opacity: 0, duration: .6 }, 3.2)
+     .from("#bar b", { scaleY: 0, opacity: 0, duration: .55, ease: "back.out(2.4)", stagger: .13 }, 4.0)
+     .from("#s2h", { y: 30, opacity: 0, duration: .9, ease: "power3.out" }, 5.2)
+     .to("#s2", { opacity: 0, duration: .55, ease: "power2.in" }, 16.3);
+    return t;
+  }},
+
+  s3: { sec: 11, build() {
+    const t = gsap.timeline({ paused: true });
+    t.from("#s3 .kicker", { y: 16, opacity: 0, duration: .6, ease: "power3.out" }, 0)
+     .from("#s3h", { y: 34, opacity: 0, duration: .9, ease: "power3.out" }, .2)
+     .from("#s3code", { y: 26, opacity: 0, duration: .8, ease: "power3.out" }, .9)
+     .from("#s3grid span", { y: 14, opacity: 0, duration: .5, ease: "power2.out", stagger: .022 }, 1.6)
+     .to("#s3", { opacity: 0, duration: .55, ease: "power2.in" }, 10.3);
+    return t;
+  }},
+
+  s5: { sec: 13, build() {
+    const t = gsap.timeline({ paused: true });
+    t.from("#s5 .kicker", { y: 16, opacity: 0, duration: .6, ease: "power3.out" }, 0)
+     .from("#s5h", { y: 34, opacity: 0, duration: .9, ease: "power3.out" }, .2)
+     .from("#env i", { scaleY: 0, transformOrigin: "bottom", duration: .5,
+                       ease: "power2.out", stagger: { each: .012, from: "start" } }, 1.0)
+     .from("#s5p", { y: 24, opacity: 0, duration: .8, ease: "power3.out" }, 2.4)
+     .fromTo("#env i.peak", { scaleY: 1 }, { scaleY: 1.14, transformOrigin: "bottom",
+             duration: .9, yoyo: true, repeat: 3, ease: "sine.inOut" }, 3.0)
+     .to("#s5", { opacity: 0, duration: .55, ease: "power2.in" }, 12.3);
+    return t;
+  }},
+
+  s8: { sec: 12, build() {
+    const t = gsap.timeline({ paused: true });
+    t.from("#s8 .kicker", { y: 16, opacity: 0, duration: .6, ease: "power3.out" }, 0)
+     .from("#s8h", { y: 34, opacity: 0, duration: .9, ease: "power3.out" }, .2)
+     .from("#s8cards .pcard", { y: 34, opacity: 0, duration: .7, ease: "power3.out", stagger: .13 }, 1.0)
+     .from("#s8p", { y: 22, opacity: 0, duration: .8, ease: "power3.out" }, 2.1)
+     .to("#s8", { opacity: 0, duration: .55, ease: "power2.in" }, 11.3);
+    return t;
+  }},
+
+  s12: { sec: 13, build() {
+    const t = gsap.timeline({ paused: true });
+    t.from("#s12 .kicker", { y: 16, opacity: 0, duration: .6, ease: "power3.out" }, 0)
+     .from("#s12h", { y: 34, opacity: 0, duration: .9, ease: "power3.out" }, .2)
+     .from("#s12term", { y: 30, opacity: 0, duration: .8, ease: "power3.out" }, .9)
+     .from("#s12term .l", { opacity: 0, x: -16, duration: .45, ease: "power2.out", stagger: .42 }, 1.5)
+     .to("#s12", { opacity: 0, duration: .55, ease: "power2.in" }, 12.3);
+    return t;
+  }},
+
+  s13: { sec: 9, build() {
+    const t = gsap.timeline({ paused: true });
+    t.from("#m13 span", { scaleY: 0, transformOrigin: "bottom", duration: .7, ease: "back.out(2)", stagger: .09 }, 0)
+     .from("#s13 .wordmark", { y: 34, opacity: 0, duration: .9, ease: "power3.out" }, .3)
+     .from("#s13url", { y: 20, opacity: 0, duration: .8, ease: "power3.out" }, .7)
+     .from("#s13sub", { y: 16, opacity: 0, duration: .8, ease: "power3.out" }, .95)
+     .to("#s13", { opacity: 0, duration: .7, ease: "power2.in" }, 8.1);
+    return t;
+  }},
+};
+
+let TL = null;
+/* Called by the renderer before the first frame of a scene. */
+window.__scene = (id) => {
+  qa(".scene").forEach((s) => s.classList.toggle("on", s.id === id));
+  if (TL) TL.kill();
+  gsap.set(`#${id}`, { clearProps: "opacity" });
+  TL = SCENES[id].build();
+  TL.pause(0);
+  return SCENES[id].sec;
+};
+/* Seek to an exact time. Nothing else moves the timeline. */
+window.__seek = (t) => { TL.time(t, false); gsap.updateRoot(t); return true; };
+window.__list = () => Object.entries(SCENES).map(([id, s]) => ({ id, sec: s.sec }));
+window.__ready = () => document.fonts.ready.then(() => true);
+</script>
+</body>
+</html>
