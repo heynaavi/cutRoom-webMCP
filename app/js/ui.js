@@ -293,6 +293,18 @@ function wireReel() {
 /* ── right rail ───────────────────────────────────────────────────────────── */
 function renderList() {
   const list = $("#list"), S = Store.state;
+
+  // Which tab is lit is a function of the state, never of what was clicked.
+  // The click handler used to set it directly, so every other route into
+  // setTab left the header lying: proposeCut switches to Cuts, "/" switches to
+  // Transcript, loading a source resets it, and the demo moves through four of
+  // them. All of those showed one tab's content under another tab's highlight.
+  $("#railTabs").querySelectorAll(".rtab").forEach((n) => {
+    const on = n.dataset.tab === S.tab;
+    n.classList.toggle("on", on);
+    n.setAttribute("aria-selected", String(on));
+  });
+
   $("#cTranscript").textContent = ` ${S.segments.length}`;
   $("#cStarred").textContent = S.starred.length ? ` ${S.starred.length}` : "";
   $("#cCands").textContent = S.candidates.length ? ` ${S.candidates.length}` : "";
@@ -424,8 +436,7 @@ function observeWords() {
 function wireRail() {
   $("#railTabs").addEventListener("click", (e) => {
     const b = e.target.closest(".rtab"); if (!b) return;
-    $("#railTabs").querySelectorAll(".rtab").forEach((n) => n.classList.toggle("on", n === b));
-    Store.setTab(b.dataset.tab);
+    Store.setTab(b.dataset.tab);          // the highlight follows state, not the click
   });
   $("#search").addEventListener("input", (e) => Store.setQuery(e.target.value));
   $("#list").addEventListener("wheel", () => { userScrolledAt = Date.now(); }, { passive: true });

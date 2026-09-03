@@ -189,12 +189,12 @@
     <!-- ── RIGHT: transcript / starred / candidates + agent log ── -->
     <aside class="right">
       <div class="rail">
-        <div class="rail-tabs" id="railTabs">
-          <button class="rtab on" data-tab="transcript">Transcript<span class="count" id="cTranscript"></span></button>
-          <button class="rtab" data-tab="starred">Starred<span class="count" id="cStarred"></span></button>
-          <button class="rtab" data-tab="cands">Cuts<span class="count" id="cCands"></span></button>
-          <button class="rtab" data-tab="energy" title="Where the voice lifts — read from the audio">Energy</button>
-          <button class="rtab" data-tab="notes">Notes<span class="count" id="cNotes"></span></button>
+        <div class="rail-tabs" id="railTabs" role="tablist">
+          <button class="rtab on" role="tab" aria-selected="true" data-tab="transcript">Transcript<span class="count" id="cTranscript"></span></button>
+          <button class="rtab" role="tab" aria-selected="false" data-tab="starred">Starred<span class="count" id="cStarred"></span></button>
+          <button class="rtab" role="tab" aria-selected="false" data-tab="cands">Cuts<span class="count" id="cCands"></span></button>
+          <button class="rtab" role="tab" aria-selected="false" data-tab="energy" title="Where the voice lifts — read from the audio">Energy</button>
+          <button class="rtab" role="tab" aria-selected="false" data-tab="notes">Notes<span class="count" id="cNotes"></span></button>
         </div>
         <div class="search" id="searchWrap">
           <input class="search-in" id="search" placeholder="Search 38 minutes…" autocomplete="off" spellcheck="false" />
