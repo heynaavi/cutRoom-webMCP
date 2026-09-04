@@ -1,226 +1,256 @@
+<div align="center">
+
+<img src="docs/media/icon.svg" width="88" alt="Cutroom" />
+
 # Cutroom
 
-**Find the short inside the hour — with an agent that has taste, not just hands.**
+**Find the short inside the hour. The agent can hear; you keep the taste.**
 
-**Live: <https://cutroom-webmcp.vercel.app/>**
+A 38-minute podcast holds five lines that, in the right order, are a story.
+Cutroom is a cutting room that hands its tools to whatever agent walks in
+through WebMCP — search the transcript, *listen* to the audio for where the
+voice lifts, propose a cut, play it out loud — while the person decides.
 
-A 38-minute podcast contains maybe five lines that, in the right order, are a
-story. Finding them is a search problem with no correct answer — only taste —
-and you cannot judge a candidate without *hearing* it.
+[![Live](https://img.shields.io/badge/live-cutroom--webmcp.vercel.app-c4582f)](https://cutroom-webmcp.vercel.app/)
+![Tools](https://img.shields.io/badge/WebMCP%20tools-33-1b1b18)
+![Audio](https://img.shields.io/badge/read%20the%20audio-5%20of%20them-c4582f)
+![Stack](https://img.shields.io/badge/build-none%20%C2%B7%20static%20files-1b1b18)
+![Licence](https://img.shields.io/badge/licence-MIT-1b1b18)
 
-Cutroom is a WebMCP surface for that problem. The page exposes its cutting tools
-to whatever AI agent is visiting, so the agent can search 500 transcript lines,
-propose whole cuts, reorder them, and **play them out loud** — while the human
-stays in the loop, listening and deciding.
+<img src="docs/media/propose.gif" width="900" alt="An agent calls proposeCut: five pending clips land on the reel, dashed, drawn from across 68% of the episode, each with a one-line reason." />
 
-Built for the [WebMCP Challenge](https://webmcp.devpost.com/).
+<sub>**[Watch the demo with sound →](https://cutroom-webmcp.vercel.app/demo.mp4)** &nbsp;·&nbsp; 2:36, narrated &nbsp;·&nbsp; built for the [WebMCP Challenge](https://webmcp.devpost.com/)</sub>
+
+</div>
 
 ---
 
-## Why this needs WebMCP
+## What it does
 
-An agent driving this page through the DOM would have to scroll a 500-line
-transcript and guess which `div` is the right line. With tools it calls
-`searchTranscript("the call came")` and gets back `{startSec: 1122.08, endSec:
-1129.78}` — a precise, un-clickable operation on the *time domain* of a
-recording.
+You have an hour of someone talking and you need forty seconds of it that
+stand on their own. That is not a search problem with an answer. It is a
+judgement, and you cannot make it without hearing the candidate.
 
-More importantly, the reads are **bidirectional**. `getReelState()` doesn't
-return a number; it returns what the human just did — which clips they muted,
-which lines they starred, how far over the 60-second budget they are. An agent
-that responds to *that* is reading taste, not executing a task.
+So the work splits down one line. **The agent** reads 547 lines in a second,
+hears where the speaker's voice lifts above their own baseline, trims to word
+boundaries and cuts on breath. **You** decide which five lines are a story,
+whether that is the right kind of energy, and say "too long" after hearing it.
 
-## The design rules
+Cutroom registers **33 tools** on `document.modelContext`. Five of them read
+the waveform rather than the words. Everything the agent does lands as a
+*pending* clip with a reason on it, plays out loud, shows up in a visible
+ledger, and can be undone. Nothing is committed until a person keeps it.
 
-1. **The agent proposes; the human disposes.** Agent-added clips land as
-   *pending* — dashed on the reel — and never silently replace human choices.
-2. **Pending clips still play.** A proposal you cannot hear is worthless, and
-   hearing it is how you decide. Only muting removes a clip from playback.
-3. **Every call is visible.** The Agent Activity ledger shows each tool
-   invocation as it happens.
-4. **Reasons travel with objects.** Each proposed clip carries a one-line *why*
-   on the card, not buried in a chat log.
+## Why it needs WebMCP
 
-## Tools
+An agent driving this page through the DOM would scroll a 547-line transcript
+and guess which `div` is the right line. With a tool it calls
+`searchTranscript("the call came")` and gets `{startSec: 1122.08, endSec:
+1129.78}` — an operation on the *time domain* of a recording, which no click
+can express.
 
-| Tool | What it does |
-|---|---|
-| `getSource` | Title, duration, line count of the loaded recording |
-| `searchTranscript` | Find lines by topic/phrase/emotion, filtered by length |
-| `readTranscript` | Read a time window in order, for context |
-| `getReelState` | The current cut **and what the human just did to it** |
-| `proposeCut` | Propose a complete short as a named candidate |
-| `addSpan` | Add one line, surgically |
-| `removeClip` / `reorderClip` | Edit the cut — order is most of the story |
-| `playReel` | Play the cut out loud so the human can judge it |
-| `findEnergyMoments` | **Reads the audio**: where the voice lifts above its own baseline |
-| `checkFlow` | An editor's read — weak hook, dangling reference, hard join, budget |
-| `snapToBreath` | Move a cut point to the nearest natural pause |
-| `setClipRole` | hook / setup / turn / payoff / button — the story's shape |
-| `trimClip` | Nudge in/out by fractions of a second, snapped to word boundaries |
-| `getCandidates` | Every angle proposed, and how the human reacted |
-| `renderVideo` | **Renders a real 1080×1920 video** with burned-in captions, in-browser |
-| `exportCut` | EDL / JSON / script / **SRT timed against the finished cut**, so it can leave the browser |
-| `getCutManifest` | Every span to a hundredth of a second, plus an ffmpeg command that has been run and checked |
-| `cleanUpCut` | One pass: stammers, false starts, hesitations, dead air, across every clip |
-| `redactPhrase` / `redactRange` | Material that must not ship, on the record and in the export |
-| `getWorkflowState` | Where this session has got to, and what's sensible next |
-| `tidyClip` | Drop leading/trailing filler words from a clip |
-| `tightenClip` | Close up dead air *inside* a clip, read from the audio |
-| `omitPhrase` | Delete words from the middle; the audio closes up behind |
-| `findPhrase` / `addPhrase` / `reshapeClip` | Cut on words, not transcript lines |
-| `listCapabilities` | What's here and the order worth doing it in |
-| `fitToBudget` | Trim the whole cut to a target length |
-| `playCandidate` | Play an alternative without disturbing the reel |
-| `undoLastChange` | An agent can replace the whole reel in one call |
-| `loadTranscript` | Load *their* recording — the agent supplies the transcript |
+More to the point, the reads go **both ways**. `getReelState` does not return
+a number; it returns what the person just did — which clips they voted down,
+what they typed in the steer box, how far over budget they are. An agent that
+answers *that* is reading taste, not executing a task. That is why this is a
+WebMCP app and not a chatbot with an API: the tools have to live where the
+person is listening.
 
-## It produces an actual video
+## Measured, not claimed
+
+Every figure on this page can be reproduced from the repo.
+
+| | | Where it stops being true |
+| --- | --- | --- |
+| Strongest moment in the episode | **lift ×2.85 at 29:38** — *"I mean, isn't that amazing that we did that?"* | Read from the RMS envelope. A keyword search for "amazing" never ranks it. |
+| `findEnergyMoments`, full pass | **1.7 ms** over 21,000 envelope samples | Envelope is built once at load; the first call pays that. |
+| `getCutManifest` → ffmpeg | manifest says **30.5 s**, ffmpeg produced **30.53 s** | The command is verified against the bundled episode; yours needs the same sample rate. |
+| Stitched playback, 3 jumps across the file | **25.3 s** wall clock for a 25 s cut, each clip within **0.11 s** of its boundary | 18 MB episode, fully cached by the browser. Bigger files would want range requests. |
+| `cleanUpCut` on the demo cut | 4 hesitations struck, **1.1 s** saved, every one restorable | Reads Whisper's word timings; a transcript without them gets the line-level version. |
+| `renderVideo` | 1080×1920 H.264 + AAC, in the browser, no server | Records in real time — a 40-second cut takes 40 seconds, and the UI says so. |
+| Tools, from the registration code | **33**, `/.well-known/mcp.json` generated from `tools.js` | The manifest cannot drift from the page; the build fails if it does. |
+
+## Inside
+
+<table>
+<tr>
+<td width="50%">
+
+**It can hear**
+
+<img src="docs/media/hear.jpg" width="100%" alt="The Energy tab: lift bars ranked, ×2.85 at 29:38 on top" />
+
+Cutroom keeps an RMS envelope of the actual audio. `findEnergyMoments` returns
+the passages where the voice lifts above its own baseline — the moment with the
+most life in it, which is rarely the smartest sentence. The same envelope drives
+`snapToBreath`, because a splice on top of a word sounds broken however good
+the line is.
+
+</td>
+<td width="50%">
+
+**It proposes. You decide.**
+
+<img src="docs/media/propose.jpg" width="100%" alt="Five pending clips on the reel, dashed, each with a one-line reason" />
+
+Agent clips land dashed and slate — *pending* — each with a one-line *why* on
+the card, not buried in a chat log. A thumbs-down or a steer chip ("Tighter",
+"Colder open") goes back through `getReelState` as `humanVote`, `humanNote`,
+`humanAsked`. Pending clips still play, because a proposal you cannot hear is
+worthless.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Cleanup you can see**
+
+<img src="docs/media/clean.jpg" width="100%" alt="The reel after cleanUpCut: the ums struck through, 3 omitted · restore" />
+
+`cleanUpCut` removes stammers, false starts and dead air from the *middle* of a
+clip and closes the audio up behind them. Struck words stay visible on the card
+with a one-click restore, and the export carries the omissions, so what you
+hear is what ships.
+
+</td>
+<td width="50%">
+
+**It checks its own work**
+
+<img src="docs/media/check.jpg" width="100%" alt="The Notes rail: weak hook, hard in, unfinished — each with the fix" />
+
+`checkFlow` reports what an editor would flag: a hook that opens mid-thought, a
+join landing on speech instead of in a pause, a sentence sheared off at the
+end. Each note names the tool that fixes it. Every result the demo quotes is
+measured from the state it just produced, never written down in advance.
+
+</td>
+</tr>
+</table>
+
+<sub>Stills are the Devpost gallery cards in `submission/gallery`, rendered from
+the live app by `film/stills.sh`.</sub>
+
+## The deliverable
 
 Everything upstream produces a decision — these spans, in this order.
-`renderVideo` turns that into a file you can post: canvas draws the audiogram
-frame by frame, MediaRecorder muxes it with the real audio, and a 1080×1920
-**H.264 + AAC MP4** lands in your downloads. No server, no upload, no queue.
+Three ways to take it out of the browser:
 
-It records in real time, because the audio has to play through the graph to be
-captured — a 40-second cut takes 40 seconds. The UI says so rather than looking
-hung.
+- **`renderVideo`** draws the audiogram frame by frame on a canvas, muxes it
+  with the real audio through MediaRecorder, and hands back a 1080×1920 MP4
+  with word-by-word captions. MP4 is requested with the full codec string
+  (`avc1.42E01E,mp4a.40.2`); the short forms report unsupported even where MP4
+  works, which is how you ship WebM by accident. The result includes the
+  one-line stream-copy that turns MediaRecorder's fragmented MP4 into one
+  QuickTime always opens.
+- **`getCutManifest`** gives every span to a hundredth of a second plus an
+  ffmpeg command. It has been run: 30.53 s out for a manifest claiming 30.5 s.
+- **`exportCut`** writes EDL, JSON, a script, or an **SRT timed against the
+  finished cut** rather than the source.
 
-MP4 is asked for with the full codec string — `video/mp4;codecs=avc1.42E01E,
-mp4a.40.2`. The short forms (`avc1,mp4a`, `h264,aac`) report unsupported even
-where MP4 works, which is how you end up shipping WebM by accident and handing
-Mac users a file QuickTime has never been able to open. WebM is still the
-fallback where MP4 recording isn't available, and the result says so.
+<div align="center">
+<img src="docs/media/output.jpg" width="820" alt="The rendered short: caption in progress, the current word in terracotta, the audiogram underneath" />
+</div>
 
-One wrinkle that remains: MediaRecorder emits a *fragmented* MP4 (`moof`/`mdat`
-pairs). Browsers and most players are fine with it; QuickTime is occasionally
-not. The tool hands back the stream-copy that fixes it — no re-encode, instant:
+## The 33 tools, by job
 
-```bash
-ffmpeg -i cut-short.mp4 -c copy -movflags +faststart cut.mp4
-```
+| | |
+| --- | --- |
+| **Find** | `getSource` · `searchTranscript` · `readTranscript` · `findPhrase` · **`findEnergyMoments`** · `listCapabilities` |
+| **Propose** | `proposeCut` · `addSpan` · `addPhrase` · `getCandidates` · `playCandidate` |
+| **Shape** | `reorderClip` · `removeClip` · `trimClip` · `reshapeClip` · `setClipRole` · `fitToBudget` · **`snapToBreath`** |
+| **Clean** | **`cleanUpCut`** · **`tightenClip`** · `tidyClip` · `omitPhrase` · `redactPhrase` · `redactRange` |
+| **Read the person** | `getReelState` · **`checkFlow`** · `getWorkflowState` · `undoLastChange` |
+| **Ship** | `playReel` · `renderVideo` · `exportCut` · `getCutManifest` |
+| **Bring in** | `loadTranscript` — the agent supplies the transcript; the agent *is* the file picker |
 
-## Why the audio matters
+**Bold** reads the audio, not the transcript. The full schemas are at
+[`/.well-known/mcp.json`](https://cutroom-webmcp.vercel.app/.well-known/mcp.json);
+an agent that can only *fetch* gets `/data/transcript.json` and
+`/data/peaks.json` too, which is enough to pick real spans and return exact
+timestamps.
 
-Editors will tell you the most clippable moment in an hour is rarely the
-smartest sentence — it's the one with the most life in it. A transcript cannot
-show you that. Cutroom keeps an RMS envelope of the real audio, so
-`findEnergyMoments` can hand an agent the passages where someone's voice lifts
-above their own baseline:
+## Try it
 
-```
-lift 2.85 @29:38  "I mean, isn't that amazing that we did that?"
-lift 2.62 @30:41  "Yeah, it's a Marvel. And you also have a perspective…"
-lift 2.41 @31:42  "…Are you going to like have a giggle fit?"
-```
+**Live:** <https://cutroom-webmcp.vercel.app/> — Chrome 149+ with
+`chrome://flags/#enable-webmcp-testing`, or ChatGPT's browser. The pill
+top-right reads **"33 tools live"** when the bridge is up. Click **What is
+this?** for a scripted run of the real tools; add `?present` to step through
+it by hand.
 
-Searching the transcript for "amazing" would never rank those. The signal is in
-the delivery. The whole pass is 1.7ms over 21,000 envelope samples. The same envelope drives `snapToBreath`, because a splice landing
-on top of a word sounds broken however good the line is.
+**A prompt worth trying:**
 
-## Three ways material gets in
+> Call listCapabilities first, then find me 60 seconds on how she went from
+> electrician to astronaut. Propose two angles, play the better one, clean it
+> up and give me the timestamps.
 
-1. **The bundled demo** — a NASA episode, so you can try it with zero setup.
-2. **Drop your own** — media + SRT/VTT/JSON onto the page. Fully client-side;
-   nothing uploads, nothing leaves your browser.
-3. **The agent brings it** — `loadTranscript` lets ChatGPT hand over a
-   transcript it already has. The agent *is* the file picker.
-
-## First run
-
-A judge arriving cold sees a podcast editor and no reason to care — the tools
-are the point and they're invisible until something calls one. So the page
-opens by saying what it is, detecting whether the browser can do WebMCP at all
-(and naming the fix if not), and offering to run the loop in front of you.
-
-The demo drives the **real tools** — the same functions an agent invokes, in the
-order an agent would sensibly use them — and it's labelled as scripted. A faked
-agent would be both dishonest and less impressive than the truth, which is that
-it genuinely works. It leaves a real cut on the reel to carry on with.
-
-Every result it reports is measured from the state it just produced, not written
-down in advance, so it cannot quote a number it isn't producing.
-
-Add **`?present`** to the URL (or press `P` while it's running) for presenter
-mode: each step then holds until you press `→`, the line to narrate is shown at
-reading size, and a clock counts up so you can see the three-minute video limit
-coming. Fixed timers are right for watching and impossible to talk over.
-
-## When the agent can't call the tools
-
-Not every runtime bridges WebMCP yet. An agent that can only *fetch* is still
-given a real path rather than left to guess: `/.well-known/mcp.json` describes
-all 33 tools (generated from the registration code, so it can't drift), and
-`/data/transcript.json` plus `/data/peaks.json` are the same transcript and
-waveform the tools read.
-
-That's enough to pick real spans and return exact timestamps. It came from
-watching an agent with no bridge do precisely this on its own — fetch the
-transcript and assemble two workable cuts — so the page now documents the path
-instead of leaving it to be rediscovered.
-
-## Trying it
-
-No build, no backend, no API keys — it's static files.
+Locally there is no build, no backend, no key — it is static files.
 
 ```bash
-npx -y serve app -l 4321
+bin/try.sh                 # serve on :4321 and open Chrome with --enable-features=WebMCP
 ```
-
-**With WebMCP on** (macOS, Chrome 149+):
 
 ```bash
-bin/try.sh
+bin/verify.sh              # drive all 33 tools over CDP, no model involved
 ```
-
-That starts the server and opens Chrome with `--enable-features=WebMCP`. The
-pill top-right should read **"33 tools live"** — that's registration succeeding.
-Point it anywhere with `bin/try.sh https://cutroom-webmcp.vercel.app`.
-
-To let a **real model** discover and drive the tools — the claim WebMCP actually
-makes — point an API key at the page:
 
 ```bash
 ANTHROPIC_API_KEY=… node scripts/agent.mjs "find me 60 seconds on how she went from electrician to astronaut"
-# or OPENAI_API_KEY=…
 ```
 
-It reads `getTools()` from the live page, hands those schemas to the model as
-its tool list, executes whatever the model chooses via `executeTool`, and loops.
-Nothing is scripted: the model picks the calls. Without a key it still reports
-what it discovered and exits.
+The last one is a minimal real agent: it reads `getTools()` from the live page,
+hands those schemas to a model, executes whatever it picks through
+`executeTool`, and loops. Nothing is scripted; the model chooses the calls.
+(`OPENAI_API_KEY` works too.)
 
-To prove the tools run through `document.modelContext` without involving a
-model:
+**Without any agent** it still works: *Suggest cuts from the text* in the Cuts
+tab builds a text-only baseline — sentence boundaries, no host questions, no
+lines opening on a pronoun. Play it against an agent's cut and you hear what
+the agent is contributing.
 
-```bash
-bin/verify.sh
-```
+<details>
+<summary><b>Notes on the WebMCP API</b> — two things the docs are quiet about</summary>
 
-It drives the page over CDP — searches the transcript, proposes a cut, checks
-the pending clips actually appear in the DOM, and confirms `getReelState`
-reports back what the human did.
+<br>
 
-**Without any agent it still works** — *Suggest cuts from the text* in the Cuts
-tab builds candidates from the words alone: sentence boundaries, no host
-questions, no lines that open on a pronoun. It is deliberately labelled for what
-it reads, and it returns two honest cuts rather than three padded ones. Playing
-those against an agent's cut, back to back, is the fastest way to hear what the
-agent is actually contributing.
-
-### Notes on the WebMCP API
-
-Two things the docs are quiet about, learned the hard way against Chrome 151:
+Learned against Chrome 151:
 
 - `executeTool` takes the **tool object** from `getTools()`, not its name.
-- Arguments go in as a **JSON string**, and the result comes back as one too —
-  your `{content:[{type:"text",text}]}` envelope is serialised for you.
+- Arguments go in as a **JSON string** and the result comes back as one; your
+  `{content:[{type:"text",text}]}` envelope is serialised for you.
+- Chrome will not let a page start audio before the person has interacted with
+  it, so an agent calling `playReel` first thing is refused. The tool says so
+  rather than claiming it played.
 
-Also: Chrome will not let a page start audio before the human has interacted
-with it, so an agent calling `playReel` first thing gets refused. The tool
-detects this and says so rather than claiming it played.
+Headers: `Permissions-Policy: tools=(self)` and `Origin-Agent-Cluster: ?1`.
 
-## Keyboard
+</details>
+
+<details>
+<summary><b>The demo film</b> — rebuilt from the repo in two commands</summary>
+
+<br>
+
+```bash
+bash film/build.sh         # ~6 min: motion cards, live app footage, the app's own render, score, narration
+bash film/stills.sh        # gallery cards, thumbnail, public copy of the demo
+```
+
+Motion cards are HTML + GSAP rendered frame by frame with the ticker detached,
+so frame N is the same pixels on any machine. App footage is the real page
+running the real demo over `Page.startScreencast`; every tool call in the
+ledger happened. The output beat is the app's own `renderVideo` result, and the
+audio under it is the actual cut. Sound is synthesised from a seeded PRNG, so
+nothing is licensed and everything is reproducible. See
+[`film/README.md`](film/README.md) for the timing sheet.
+
+</details>
+
+<details>
+<summary><b>Keyboard</b></summary>
+
+<br>
 
 | Key | |
 |---|---|
@@ -232,7 +262,12 @@ detects this and says so rather than claiming it played.
 | `?` | Show all of these |
 | `←` `→` `P` | Previous / next / presenter mode, while the demo is open |
 
-## Layout
+</details>
+
+<details>
+<summary><b>Layout, media, design</b></summary>
+
+<br>
 
 ```
 app/
@@ -243,21 +278,29 @@ app/
   js/ui.js             rendering + interaction
   js/ingest.js         SRT/VTT/JSON parsing, file drop
   js/starters.js       heuristic cuts for no-agent use
-  js/tools.js          WebMCP tool definitions
+  js/tour.js           the scripted demo and presenter mode
+  js/tools.js          the 33 WebMCP tool definitions
+  js/render.js         renderVideo — canvas + MediaRecorder
+  js/analysis.js       RMS envelope, energy, breath
+  js/wave.js           waveform drawing
   data/                transcript, waveform peaks, credits
   media/episode.m4a    18 MB — the whole 38 minutes
-scripts/               transcript + waveform build steps
+film/                  the demo film pipeline
+scripts/               transcript, peaks and manifest build steps
+submission/            Devpost pack: gallery, thumbnail, brand kit, copy
 ```
 
-## Notes on the media
+The episode is 64 kbps mono AAC, 18 MB for 38.5 minutes — small enough that
+the browser caches all of it, so seeking is instant and stitched playback needs
+no HLS or range tuning. Demo audio is public domain (NASA); see
+[`app/data/CREDITS.md`](app/data/CREDITS.md).
 
-The episode is 64 kbps mono AAC — **18 MB for 38.5 minutes**. Small enough that
-the browser caches the whole thing, so seeking is instant and stitched playback
-needs no HLS, byte-range tuning, or CDN. Measured: a 25-second cut spanning
-three jumps across the file plays in 25.3 seconds of wall clock, each clip
-landing within 0.11s of its boundary.
+Palette and type follow the QWEE design system V3 — neutral paper, ink at 74%
+and 62%, hairlines — with Cutroom's two accents: terracotta is *mine*, slate is
+*proposed*. Measured contrast and the reasoning are in
+[`submission/BRAND.md`](submission/BRAND.md).
 
-Demo audio is public domain (NASA). See [app/data/CREDITS.md](app/data/CREDITS.md).
+</details>
 
 ## Licence
 
