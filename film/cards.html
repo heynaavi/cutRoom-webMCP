@@ -286,14 +286,16 @@ const qa = (s, r = document) => [...r.querySelectorAll(s)];
 /* Each entry: the scene's element id, its length in seconds, and a builder
    returning a paused timeline. */
 const SCENES = {
-  s1: { sec: 8, build() {
+  // Five seconds: the mark strikes, the name lands, the line is said, and we
+  // are into the problem. Eight held an empty frame on one word.
+  s1: { sec: 5, build() {
     const t = gsap.timeline({ paused: true });
     t.from("#m1 span", { scaleY: 0, transformOrigin: "bottom", duration: .7, ease: "back.out(2)", stagger: .09 }, 0)
      .from(".wordmark", { y: 44, opacity: 0, duration: .9, ease: "power3.out" }, .35)
      .from(".tagline", { y: 22, opacity: 0, duration: .8, ease: "power3.out" }, .62)
      .from(".chip", { y: 20, opacity: 0, duration: .8, ease: "power3.out" }, .85)
-     .to("#s1 .chip i", { opacity: .35, duration: .5, yoyo: true, repeat: 6, ease: "sine.inOut" }, 1.6)
-     .to("#s1", { opacity: 0, duration: .55, ease: "power2.in" }, 7.3);
+     .to("#s1 .chip i", { opacity: .35, duration: .5, yoyo: true, repeat: 3, ease: "sine.inOut" }, 1.4)
+     .to("#s1", { opacity: 0, duration: .55, ease: "power2.in" }, 4.45);
     return t;
   }},
 

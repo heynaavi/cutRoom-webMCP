@@ -4,19 +4,22 @@
     python3 film/mix-vo.py            # film/silent.mp4 + film/score.m4a + film/vo/*.mp3 → film/cutroom-demo.mp4
 
 Thirteen lines, one per segment, each placed 0.8s after its segment starts on
-the finished timeline (s1 waits for the mark to strike, s13 for the wordmark).
+the finished timeline (s1 waits 1.5s for the mark and the name, s13 1.3s for the wordmark).
 The score is side-chained under the voice so a cue never steps on a word; the
 real cut at 2:12 has no narration over it and comes through at full level.
 Voice gain is 0.55: the lines arrive near full scale and any gain on top only
 hands them to the limiter, and a limited voice is a flat one.
 """
-import subprocess, os, sys
+import subprocess, os, sys, json
 F = os.path.dirname(os.path.abspath(__file__))
-START = {"s1":0,"s2":7.6,"s3":24.2,"arrive":34.8,"s5":43.47,"energy":56.07,"propose":67.74,
-         "s8":79.41,"playing":91.01,"check":99.68,"clean":109.35,"s12":120.02,"s13":150.22}
-LEAD = {"s1":2.6,"s13":1.3}
+# Segment starts on the finished timeline, written by assemble.mjs from the
+# real clip lengths, so a retimed card moves every later line with it.
+START = json.load(open(f"{F}/starts.json"))
+LEAD = {"s1":1.5,"s13":1.3}
 inputs = ["-i", f"{F}/score.m4a"]; chains = ["[0:a]volume=1.0[bed]"]; parts = []
-for i, k in enumerate(START, 1):
+# The output beat has no line on purpose: the cut plays, and nothing talks over it.
+LINES = [k for k in START if os.path.exists(f"{F}/vo/{k}.mp3")]
+for i, k in enumerate(LINES, 1):
     ms = int(round((START[k] + LEAD.get(k, 0.8)) * 1000))
     inputs += ["-i", f"{F}/vo/{k}.mp3"]
     chains.append(f"[{i}:a]aformat=sample_rates=48000:channel_layouts=mono,volume=0.55,adelay={ms}|{ms}[v{i}]")

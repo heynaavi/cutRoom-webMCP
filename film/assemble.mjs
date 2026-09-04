@@ -59,7 +59,7 @@ const EDIT = [
 // explicitly (not just tagging them) is what keeps the paper the same colour
 // in a card and in a screenshot of the app.
 const V = "scale=1920:1080:force_original_aspect_ratio=decrease:in_range=full:out_range=tv,"
-        + "pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0xe6e0cf,setsar=1,format=yuv420p";
+        + "pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=0xf1f0ec,setsar=1,format=yuv420p";
 const ENC = ["-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p",
              "-color_range", "tv", "-colorspace", "bt709",
              "-color_primaries", "bt709", "-color_trc", "bt709", "-r", "30", "-an"];
@@ -115,6 +115,9 @@ ff([...EDIT.flatMap((s) => ["-i", s.file]),
 const starts = {};
 let at = 0;
 EDIT.forEach((seg, i) => { starts[seg.id] = at; at += seg.dur - (i < EDIT.length - 1 ? FADE : 0); });
+// Written out so the narration mix (mix-vo.py) places each line against the
+// real segment starts rather than a copy of this table.
+writeFileSync(join(W, "starts.json"), JSON.stringify(starts, null, 1));
 
 const inputs = [];
 const chains = [];

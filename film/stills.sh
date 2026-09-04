@@ -13,7 +13,9 @@ cp film/app/propose/$(at propose .82) $S/propose.jpg
 cp film/app/clean/$(at clean .82)     $S/clean.jpg
 cp film/app/check/$(at check .76)     $S/check.jpg
 cp film/app/arrive/$(at arrive .72)   $S/arrive.jpg
-ffmpeg -hide_banner -loglevel error -y -ss 140 -i film/cutroom-demo.mp4 -frames:v 1 -q:v 2 $S/output.jpg
+# 8s into the output beat, wherever that beat now starts.
+OUT_T=$(python3 -c "import json;print(round(json.load(open('film/starts.json'))['output']+8,2))")
+ffmpeg -hide_banner -loglevel error -y -ss $OUT_T -i film/cutroom-demo.mp4 -frames:v 1 -q:v 2 $S/output.jpg
 ffmpeg -hide_banner -loglevel error -y -ss 9 -i film/short.mp4 -frames:v 1 -q:v 2 $S/short-frame.jpg
 # Detail crops — the card shows the thing the headline is about, not the app around it.
 ffmpeg -hide_banner -loglevel error -y -i $S/energy.jpg -vf "crop=730:1000:1190:56" -q:v 2 $S/energy-detail.jpg

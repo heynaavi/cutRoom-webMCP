@@ -1,6 +1,6 @@
 # The demo video
 
-`cutroom-demo.mp4` — **2:39, 1920×1080, 30fps, H.264 + AAC.** Under the rules'
+`cutroom-demo.mp4` — **2:36, 1920×1080, 30fps, H.264 + AAC.** Under the rules'
 three-minute cap, non-fragmented MP4, nothing in it is licensed from anyone.
 
 ```bash
@@ -56,25 +56,25 @@ segment begins slightly before its card is fully up.
 
 | In | Segment | Len | What's on screen |
 | --- | --- | --- | --- |
-| 0:00 | `s1` | 8.0s | Title — wordmark, "33 tools live" |
-| 0:07 | `s2` | 17.0s | **The problem.** 38 minutes → 547 lines → the hour drawn, five clips marked |
-| 0:24 | `s3` | 11.0s | What it is — `document.modelContext.registerTool` × 33, the tool grid |
-| 0:34 | `arrive` | 9.1s | App: `listCapabilities`, the agent gets its bearings |
-| 0:43 | `s5` | 13.0s | **It can hear.** Five of thirty-three don't read the transcript |
-| 0:56 | `energy` | 12.1s | App: `findEnergyMoments`, lift bars, ×2.85 at 29:38 |
-| 1:07 | `propose` | 12.1s | App: `proposeCut` — five clips land, drawn across 68% |
-| 1:19 | `s8` | 12.0s | Nothing is committed — dashed means pending |
-| 1:31 | `playing` | 9.1s | App: the reel playing |
-| 1:39 | `check` | 10.1s | App: `checkFlow` — six issues, weak hook |
-| 1:49 | `clean` | 11.1s | App: `cleanUpCut` — the "um"s struck out |
-| 2:00 | `s12` | 13.0s | The deliverable — 9 spans, the ffmpeg command, "it runs" |
-| 2:12 | `output` | 18.0s | **The rendered short, playing, with its real audio** |
-| 2:30 | `s13` | 9.0s | End card — URL, 33 tools, MIT |
+| 0:00 | `s1` | 5.0s | Title — wordmark, "33 tools live" |
+| 0:05 | `s2` | 17.0s | **The problem.** 38 minutes → 547 lines → the hour drawn, five clips marked |
+| 0:21 | `s3` | 11.0s | What it is — `document.modelContext.registerTool` × 33, the tool grid |
+| 0:32 | `arrive` | 9.1s | App: `listCapabilities`, the agent gets its bearings |
+| 0:40 | `s5` | 13.0s | **It can hear.** Five of thirty-three don't read the transcript |
+| 0:53 | `energy` | 12.1s | App: `findEnergyMoments`, lift bars, ×2.85 at 29:38 |
+| 1:05 | `propose` | 12.1s | App: `proposeCut` — five clips land, drawn across 68% |
+| 1:16 | `s8` | 12.0s | Nothing is committed — dashed means pending |
+| 1:28 | `playing` | 9.1s | App: the reel playing |
+| 1:37 | `check` | 10.1s | App: `checkFlow` — six issues, weak hook |
+| 1:47 | `clean` | 11.1s | App: `cleanUpCut` — the "um"s struck out |
+| 1:57 | `s12` | 13.0s | The deliverable — 9 spans, the ffmpeg command, "it runs" |
+| 2:10 | `output` | 18.0s | **The rendered short, playing, with its real audio** |
+| 2:27 | `s13` | 9.0s | End card — URL, 33 tools, MIT |
 
 ### Recording a voiceover against it
 
-Two beats want silence from the narrator: **0:56–1:07** (let the energy results
-land — it is the one thing here a transcript search cannot do) and **2:12–2:30**
+Two beats want silence from the narrator: **0:53–1:04** (let the energy results
+land — it is the one thing here a transcript search cannot do) and **2:10–2:27**
 (let the cut play; it is the only moment where the product speaks for itself).
 
 Everything else is open. The visuals carry the argument on their own, so the
