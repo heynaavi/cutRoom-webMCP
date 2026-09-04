@@ -10,10 +10,10 @@
 @font-face { font-family:"JB"; src:url("../app/fonts/JetBrainsMono-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; }
 
 :root {
-  --bg:#e6e0cf; --surface:#f8f5ed; --surface-2:#dcd4c0; --raised:#fffdf8;
-  --text:#211f1a; --text-2:#3c3a33; --muted:#5a574e; --faint:#948d7a;
-  --accent:#c4582f; --ghost:#3f6b8a; --on-accent:#fffaf2;
-  --hairline:rgba(44,42,38,.13);
+  --bg:#f1f0ec; --surface:#fafaf8; --surface-2:#e3e2dd; --raised:#ffffff;
+  --text:#1b1b18; --text-2:#3a3936; --muted:#5d5c57; --faint:#6b6a64;
+  --accent:#c4582f; --ghost:#3f6b8a; --on-accent:#fff7f2;
+  --hairline:rgba(27,27,24,.14);
 }
 *,*::before,*::after { box-sizing:border-box; }
 html,body { margin:0; padding:0; width:1920px; height:1080px; overflow:hidden; }
@@ -22,14 +22,12 @@ body {
   font-family:"DM",system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;
 }
-/* The paper grain the app uses on its preview card, at film scale. */
-body::after {
-  content:""; position:fixed; inset:0; pointer-events:none; opacity:.30;
-  background-image:radial-gradient(circle at 1px 1px, rgba(44,42,38,.16) 1px, transparent 0);
-  background-size:6px 6px; mix-blend-mode:multiply;
-}
+/* Paper grain (QWEE V3 §5): fixed, under the content, never reads as texture. */
+body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.055;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='160' height='160' filter='url(%23g)'/></svg>");
+  background-size:160px 160px; }
 .scene {
-  position:fixed; inset:0; display:none;
+  position:fixed; inset:0; display:none; z-index:1;
   padding:120px 150px; flex-direction:column; justify-content:center;
 }
 .scene.on { display:flex; }
@@ -66,7 +64,7 @@ em.wm { font-style:normal; color:var(--accent); }
   display:inline-flex; align-items:center; gap:16px; margin-top:52px;
   padding:16px 30px; border:2px solid var(--hairline); border-radius:100px;
   font-family:"JB",monospace; font-size:24px; letter-spacing:.2em;
-  text-transform:uppercase; color:var(--muted); background:var(--surface);
+  text-transform:uppercase; color:var(--muted); background:var(--raised);
 }
 .chip i { width:14px; height:14px; border-radius:50%; background:#557a4a; display:block; }
 .mark { display:flex; gap:14px; align-items:flex-end; height:120px; margin-bottom:56px; }
@@ -97,7 +95,7 @@ em.wm { font-style:normal; color:var(--accent); }
 /* ── 3 · the tools ───────────────────────────────────────────────────────── */
 .codeline {
   font-family:"JB",monospace; font-size:52px; color:var(--text);
-  background:var(--surface); border:2px solid var(--hairline); border-radius:18px;
+  background:var(--raised); border:2px solid var(--hairline); border-radius:18px;
   padding:34px 44px; display:inline-block; margin-top:20px;
 }
 .codeline .k { color:var(--accent); }
@@ -133,13 +131,13 @@ em.wm { font-style:normal; color:var(--accent); }
 
 /* ── 12 · deliverable ────────────────────────────────────────────────────── */
 .term {
-  background:#171613; border-radius:20px; padding:44px 50px; margin-top:52px;
-  font-family:"JB",monospace; font-size:30px; line-height:1.65; color:#ece7dc;
-  overflow:hidden; box-shadow:0 30px 80px rgba(60,40,20,.22);
+  background:#141413; border-radius:20px; padding:44px 50px; margin-top:52px;
+  font-family:"JB",monospace; font-size:30px; line-height:1.65; color:#e9e7e2;
+  overflow:hidden; box-shadow:0 30px 80px rgba(20,20,18,.20);
 }
 .term .c { color:#e0724a; }
 .term .g { color:#8fae83; }
-.term .d { color:#6b655a; }
+.term .d { color:#8b8981; }
 
 /* ── 13 · end ────────────────────────────────────────────────────────────── */
 #s13 { align-items:center; justify-content:center; text-align:center; }

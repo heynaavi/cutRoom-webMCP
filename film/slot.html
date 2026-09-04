@@ -4,14 +4,14 @@
 @font-face { font-family:"SG"; src:url("../app/fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; }
 @font-face { font-family:"DM"; src:url("../app/fonts/DMSans-VariableFont_opsz,wght.ttf") format("truetype"); font-weight:100 900; }
 @font-face { font-family:"JB"; src:url("../app/fonts/JetBrainsMono-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; }
-:root { --bg:#e6e0cf; --surface-2:#dcd4c0; --text:#211f1a; --muted:#5a574e; --faint:#948d7a; --accent:#c4582f; }
+:root { --bg:#f1f0ec; --surface-2:#e3e2dd; --text:#1b1b18; --muted:#5d5c57; --faint:#6b6a64; --accent:#c4582f; }
 *,*::before,*::after { box-sizing:border-box; }
 html,body { margin:0; width:1920px; height:1080px; overflow:hidden; background:var(--bg);
             font-family:"DM",sans-serif; color:var(--text); -webkit-font-smoothing:antialiased; }
-body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:.30;
-  background-image:radial-gradient(circle at 1px 1px, rgba(44,42,38,.16) 1px, transparent 0);
-  background-size:6px 6px; mix-blend-mode:multiply; }
-.wrap { display:flex; height:100%; align-items:center; padding:0 130px; gap:110px; }
+body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.055;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='160' height='160' filter='url(%23g)'/></svg>");
+  background-size:160px 160px; }
+.wrap { position:relative; z-index:1; display:flex; height:100%; align-items:center; padding:0 130px; gap:110px; }
 .left { flex:1; }
 .kicker { font-family:"JB",monospace; font-size:22px; letter-spacing:.22em; text-transform:uppercase;
           color:var(--accent); margin-bottom:34px; }
@@ -19,13 +19,13 @@ h2 { font-family:"SG",sans-serif; font-weight:600; letter-spacing:-.028em; font-
      line-height:1.08; margin:0; max-width:14ch; }
 ul { list-style:none; padding:0; margin:52px 0 0; }
 li { font-family:"JB",monospace; font-size:27px; color:var(--muted); padding:13px 0;
-     border-top:2px solid rgba(44,42,38,.13); letter-spacing:.02em; }
+     border-top:2px solid rgba(27,27,24,.14); letter-spacing:.02em; }
 li b { color:var(--text); font-weight:600; }
 /* The slot the rendered short is composited into. Its rect is the contract with
    assemble.mjs — 540×960 at 1180,60 — so the shadow is drawn here and the video
    is laid straight on top of it. */
 .slot { position:relative; width:540px; height:960px; border-radius:26px;
-        background:#171613; box-shadow:0 40px 90px rgba(60,40,20,.28), 0 0 0 1px rgba(44,42,38,.16); }
+        background:#141413; box-shadow:0 40px 90px rgba(20,20,18,.26), 0 0 0 1px rgba(27,27,24,.16); }
 </style></head><body>
 <div class="wrap">
   <div class="left">

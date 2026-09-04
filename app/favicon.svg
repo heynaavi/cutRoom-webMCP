@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Cutroom">
   <style>
-    .plate { fill: #e6e0cf }
-    .track { fill: #dcd4c0 }
+    .plate { fill: #f1f0ec }
+    .track { fill: #d9d8d2 }
     .bars  { fill: #c4582f }
     @media (prefers-color-scheme: dark) {
-      .plate { fill: #171613 }
-      .track { fill: #2a2721 }
+      .plate { fill: #151514 }
+      .track { fill: #2b2b29 }
       .bars  { fill: #e0724a }
     }
   </style>

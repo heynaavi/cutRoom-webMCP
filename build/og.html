@@ -3,22 +3,22 @@
 @font-face{font-family:"DM";src:url("../app/fonts/DMSans-VariableFont_opsz,wght.ttf");font-weight:100 900}
 @font-face{font-family:"JB";src:url("../app/fonts/JetBrainsMono-VariableFont_wght.ttf");font-weight:100 900}
 *{box-sizing:border-box;margin:0}
-body{width:1200px;height:630px;overflow:hidden;background:#e6e0cf;font-family:"DM",system-ui;color:#211f1a;position:relative}
-.grain{position:absolute;inset:0;opacity:.5;background-image:radial-gradient(circle at 1px 1px,rgba(44,42,38,.16) 1px,transparent 0);background-size:5px 5px;mix-blend-mode:multiply}
+body{width:1200px;height:630px;overflow:hidden;background:#f1f0ec;font-family:"DM",system-ui;color:#1b1b18;position:relative}
+.grain{position:absolute;inset:0;opacity:.06;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='160' height='160' filter='url(%23g)'/></svg>");background-size:160px 160px}
 .pad{position:relative;padding:62px 72px;height:100%;display:flex;flex-direction:column}
 .top{display:flex;align-items:baseline;gap:14px}
 .mark{font-family:"SG";font-weight:700;font-size:34px;letter-spacing:-.025em}
 .mark em{font-style:normal;color:#c4582f}
-.chip{font-family:"JB";font-size:12px;letter-spacing:.2em;color:#8c8577;border:1px solid rgba(44,42,38,.22);padding:5px 11px;border-radius:100px}
+.chip{font-family:"JB";font-size:12px;letter-spacing:.2em;color:#75746e;border:1px solid rgba(27,27,24,.22);padding:5px 11px;border-radius:100px}
 h1{font-family:"SG";font-weight:600;font-size:82px;line-height:1.02;letter-spacing:-.035em;margin-top:52px;max-width:15ch}
 h1 span{color:#c4582f}
-p{font-size:23px;line-height:1.42;color:#5a574e;margin-top:26px;max-width:44ch}
+p{font-size:23px;line-height:1.42;color:#5d5c57;margin-top:26px;max-width:44ch}
 .spacer{flex:1}
-.bar{position:relative;height:44px;border-radius:9px;background:#dcd4c0;border:1px solid rgba(44,42,38,.10);overflow:hidden}
+.bar{position:relative;height:44px;border-radius:9px;background:#e3e2dd;border:1px solid rgba(27,27,24,.10);overflow:hidden}
 .bar i{position:absolute;top:0;bottom:0;background:#c4582f;border-radius:2px}
-.scale{display:flex;justify-content:space-between;margin-top:12px;font-family:"JB";font-size:14px;color:#8c8577;letter-spacing:.04em}
-.scale b{color:#211f1a;font-weight:500}
-.cap{font-family:"JB";font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:#8c8577;margin-bottom:13px}
+.scale{display:flex;justify-content:space-between;margin-top:12px;font-family:"JB";font-size:14px;color:#75746e;letter-spacing:.04em}
+.scale b{color:#1b1b18;font-weight:500}
+.cap{font-family:"JB";font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:#75746e;margin-bottom:13px}
 </style></head><body>
 <div class="grain"></div>
 <div class="pad">

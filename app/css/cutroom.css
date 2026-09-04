@@ -1,7 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   CUTROOM — design tokens inherited from the Quiet Engine art direction.
-   Warm paper + terracotta. One accent, used sparingly, so it still means
-   something when it appears on a selected clip.
+   CUTROOM — design tokens. QWEE V3 structure (paper ground, white panels,
+   ink at 74% / 62% for secondary and tertiary text, hairlines at 14% / 7%),
+   with Cutroom's own accents: terracotta is "mine", slate is "proposed".
+   The ground is a neutral paper, not cream — colour belongs to the accent.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @font-face { font-family:"Space Grotesk QE"; src:url("../fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; font-display:swap; }
@@ -9,17 +10,18 @@
 @font-face { font-family:"JetBrains Mono QE"; src:url("../fonts/JetBrainsMono-VariableFont_wght.ttf") format("truetype"); font-weight:100 900; font-display:swap; }
 
 :root {
-  --bg:#e6e0cf; --surface:#f8f5ed; --surface-2:#dcd4c0; --raised:#fffdf8;
-  --text:#211f1a; --text-2:#3c3a33; --muted:#5a574e; --faint:#948d7a;
-  --hairline:rgba(44,42,38,.13); --hairline-2:rgba(44,42,38,.07);
-  --accent:#c4582f; --accent-hover:#d96a3d; --accent-soft:rgba(196,88,47,.10);
-  --on-accent:#fffaf2;
+  --bg:#f1f0ec; --surface:#fafaf8; --surface-2:#e6e5e0; --raised:#ffffff;
+  --text:#1b1b18; --text-2:#3a3936; --muted:#5d5c57; --faint:#6b6a64;
+  --hairline:rgba(27,27,24,.14); --hairline-2:rgba(27,27,24,.07);
+  --accent:#c4582f; --accent-hover:#d2643a; --accent-soft:rgba(196,88,47,.10);
+  --on-accent:#fff7f2;
   --ghost:#3f6b8a; --ghost-soft:rgba(63,107,138,.10);
-  --positive:#557a4a; --warn:#b3711f; --danger:#a23a22;
-  --shadow-1:0 1px 2px rgba(60,40,20,.06),0 1px 3px rgba(60,40,20,.05);
-  --shadow-2:0 2px 4px rgba(60,40,20,.07),0 8px 20px rgba(60,40,20,.09);
-  --shadow-3:0 2px 6px rgba(60,40,20,.09),0 18px 46px rgba(60,40,20,.14);
-  --track:rgba(44,42,38,.12);
+  --positive:#557a4a; --warn:#96671a; --danger:#a23a22;
+  --shadow-1:0 1px 2px rgba(20,20,18,.05),0 1px 3px rgba(20,20,18,.04);
+  --shadow-2:0 2px 4px rgba(20,20,18,.06),0 8px 20px rgba(20,20,18,.08);
+  --shadow-3:0 2px 6px rgba(20,20,18,.08),0 18px 46px rgba(20,20,18,.13);
+  --track:rgba(27,27,24,.12);
+  --scrim:rgba(27,27,24,.44);
   --f-display:"Space Grotesk QE","Space Grotesk",system-ui,sans-serif;
   --f-body:"DM Sans QE","DM Sans",system-ui,sans-serif;
   --f-mono:"JetBrains Mono QE","JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
@@ -27,14 +29,15 @@
   --topbar:56px; --rail:clamp(440px,38vw,760px); --chips:52px;
 }
 [data-theme="dark"] {
-  --bg:#0f0e0c; --surface:#171613; --surface-2:#1f1d19; --raised:#232019;
-  --text:#ece7dc; --text-2:#c9c3b6; --muted:#928b7d; --faint:#6b655a;
-  --hairline:rgba(236,231,220,.13); --hairline-2:rgba(236,231,220,.06);
+  --bg:#0d0d0c; --surface:#151514; --surface-2:#1f1f1d; --raised:#242422;
+  --text:#e9e7e2; --text-2:#c7c5be; --muted:#a3a199; --faint:#8b8981;
+  --hairline:rgba(233,231,226,.13); --hairline-2:rgba(233,231,226,.06);
   --accent:#e0724a; --accent-hover:#ef8259; --accent-soft:rgba(224,114,74,.14);
-  --on-accent:#1a1209;
+  --on-accent:#1a110b;
   --ghost:#6fa3c7; --ghost-soft:rgba(111,163,199,.14);
   --shadow-1:0 1px 2px rgba(0,0,0,.4); --shadow-2:0 4px 18px rgba(0,0,0,.45);
-  --shadow-3:0 18px 46px rgba(0,0,0,.55); --track:rgba(236,231,220,.14);
+  --shadow-3:0 18px 46px rgba(0,0,0,.55); --track:rgba(233,231,226,.14);
+  --scrim:rgba(0,0,0,.55);
 }
 
 *,*::before,*::after { box-sizing:border-box; }
@@ -114,15 +117,15 @@ input { font:inherit; color:inherit; }
 .stage-card {
   position:relative; height:100%; width:100%; flex:1; min-width:0;
   border-radius:var(--r-lg);
-  background:linear-gradient(158deg,var(--raised),var(--surface-2));
+  background:linear-gradient(158deg,var(--raised),var(--surface));
   border:1px solid var(--hairline); box-shadow:var(--shadow-2);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   padding:30px 40px 58px; overflow:hidden;
 }
 /* subtle paper grain so the flat card doesn't read as a placeholder */
 .stage-card::after {
-  content:""; position:absolute; inset:0; pointer-events:none; opacity:.28;
-  background-image:radial-gradient(circle at 1px 1px,rgba(44,42,38,.18) 1px,transparent 0);
+  content:""; position:absolute; inset:0; pointer-events:none; opacity:.20;
+  background-image:radial-gradient(circle at 1px 1px,rgba(27,27,24,.16) 1px,transparent 0);
   background-size:4px 4px; mix-blend-mode:multiply;
 }
 [data-theme="dark"] .stage-card::after { mix-blend-mode:screen; opacity:.14; }
@@ -488,7 +491,7 @@ body.dropping::after {
 /* ══ first-run: the welcome ═══════════════════════════════════════════════ */
 .tour-scrim {
   position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:24px;
-  background:rgba(33,31,26,.44);
+  background:var(--scrim);
 }
 .tour-card {
   width:min(600px,100%); background:var(--surface); border:1px solid var(--hairline);
@@ -534,7 +537,7 @@ body.dropping::after {
 /* ══ the player ═══════════════════════════════════════════════════════════ */
 .tour-spot {
   position:fixed; z-index:93; pointer-events:none; border-radius:var(--r-lg);
-  box-shadow:0 0 0 2px var(--accent), 0 0 0 9999px rgba(33,31,26,.30);
+  box-shadow:0 0 0 2px var(--accent), 0 0 0 9999px var(--scrim);
   transition:left .5s cubic-bezier(.3,.9,.3,1), top .5s cubic-bezier(.3,.9,.3,1),
              width .5s cubic-bezier(.3,.9,.3,1), height .5s cubic-bezier(.3,.9,.3,1), opacity .2s;
 }
@@ -696,7 +699,7 @@ body.text-only .cut-play { opacity:.4; cursor:not-allowed; }
 /* ── shortcuts ─────────────────────────────────────────────────────────────── */
 .keys {
   position:fixed; inset:0; z-index:99; display:grid; place-items:center;
-  background:rgba(33,31,26,.44); opacity:0; pointer-events:none; transition:opacity .2s;
+  background:var(--scrim); opacity:0; pointer-events:none; transition:opacity .2s;
 }
 .keys.on { opacity:1; pointer-events:auto; }
 .keys-card {

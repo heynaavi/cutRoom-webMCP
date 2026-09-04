@@ -1,8 +1,10 @@
 # Cutroom — brand kit
 
 Cutroom is an editing room, not a dashboard. Everything below follows from that:
-warm paper rather than product-blue, one accent that has to mean something, and
-motion that eases the way a fader does.
+a neutral paper rather than product-blue or cream, one accent that has to mean
+something, and motion that eases the way a fader does. The surfaces follow the
+QWEE design system V3 (paper ground, white panels, ink at 74% and 62% for the
+secondary and tertiary text, hairlines at 14% and 7%); the accents are Cutroom's own.
 
 ---
 
@@ -39,27 +41,32 @@ technology is named in the UI chrome.
 One accent. Terracotta appears on the playing clip, the accepted state, and
 nothing else — the moment it decorates something, it stops meaning "this one".
 
-### Light — warm paper
+### Light — paper
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `--bg` | `#e6e0cf` | Page — paper, not white |
-| `--surface` | `#f8f5ed` | Panels |
-| `--surface-2` | `#dcd4c0` | Recessed tracks |
-| `--raised` | `#fffdf8` | Cards that sit above the page |
-| `--text` | `#211f1a` | Body — 12.49:1 on `--bg`, 10.45:1 as rendered transcript |
-| `--muted` | `#5a574e` | Timestamps, secondary — 5.48:1 |
+| `--bg` | `#f1f0ec` | Page — a neutral paper, no cream in it |
+| `--surface` | `#fafaf8` | Panels, the rail |
+| `--surface-2` | `#e6e5e0` | Recessed tracks, wells |
+| `--raised` | `#ffffff` | Cards that sit above the page |
+| `--text` | `#1b1b18` | Ink — 16.5:1 on `--surface` |
+| `--text-2` | `#3a3936` | Body in quantity |
+| `--muted` | `#5d5c57` | Ink at ~74% — timestamps, secondary — 6.4:1 |
+| `--faint` | `#6b6a64` | Ink at ~62% — micro labels — 5.2:1 on panels, 4.8:1 on the page, AA at 10px mono |
+| `--hairline` / `--hairline-2` | ink @ 14% / 7% | Borders / row dividers |
 | `--accent` | `#c4582f` | Terracotta — playing, accepted |
 | `--ghost` | `#3f6b8a` | Slate — *proposed, not yet yours* |
-| `--positive` `--warn` `--danger` | `#557a4a` `#b3711f` `#a23a22` | Flow notes |
+| `--positive` `--warn` `--danger` | `#557a4a` `#96671a` `#a23a22` | Flow notes (amber per V3: 4.7:1 on paper) |
 
 ### Dark — the room with the lights down
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| `--bg` | `#0f0e0c` | |
-| `--surface` | `#171613` | |
-| `--text` | `#ece7dc` | 10.31:1 as rendered transcript (measured in-page) |
+| `--bg` | `#0d0d0c` | |
+| `--surface` | `#151514` | |
+| `--surface-2` / `--raised` | `#1f1f1d` / `#242422` | |
+| `--text` | `#e9e7e2` | Ink lightened *and* desaturated — the same hue with the chroma taken out |
+| `--muted` / `--faint` | `#a3a199` / `#8b8981` | 64% and lower — a label on a dark ground at 45% was a guess |
 | `--accent` | `#e0724a` | Lifted to hold saturation against black |
 | `--ghost` | `#6fa3c7` | Same lift |
 

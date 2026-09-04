@@ -72,3 +72,10 @@ fi
 
 echo "· assembling"
 node "$FILM/assemble.mjs" "$FILM" "$FILM/cutroom-demo.mp4"
+
+# assemble.mjs leaves silent.mp4 (picture) and score.m4a (cues + bed) beside the
+# muxed file; the narration goes on last so a re-mix never touches the picture.
+if [ -d "$FILM/vo" ]; then
+  echo "· narration"
+  python3 "$FILM/mix-vo.py"
+fi

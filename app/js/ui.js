@@ -846,7 +846,7 @@ function wireDrop() {
 /* ── theme ────────────────────────────────────────────────────────────────── */
 // The inline script in <head> picks the theme before first paint; this only
 // keeps the choice, the label and the browser chrome in step with it.
-const THEME_BG = { light: "#e6e0cf", dark: "#0f0e0c" };
+const THEME_BG = { light: "#f1f0ec", dark: "#0d0d0c" };
 function applyTheme(next, persist) {
   const t = next === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = t;

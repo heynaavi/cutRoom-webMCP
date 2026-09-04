@@ -33,12 +33,12 @@ const Render = (() => {
 
   function frame(c, { words, now, clipNo, clipCount, title, progress, peaks, dur }) {
     // ground
-    c.fillStyle = "#e6e0cf"; c.fillRect(0, 0, W, H);
-    c.fillStyle = "rgba(44,42,38,.05)";
+    c.fillStyle = "#f1f0ec"; c.fillRect(0, 0, W, H);
+    c.fillStyle = "rgba(27,27,24,.05)";
     for (let y = 0; y < H; y += 10) for (let x = 0; x < W; x += 10) c.fillRect(x, y, 2, 2);
 
     // title
-    c.fillStyle = "#948d7a";
+    c.fillStyle = "#6b6a64";
     c.font = "500 26px 'JetBrains Mono QE', monospace";
     c.textAlign = "left";
     c.fillText(title.toUpperCase().slice(0, 34), 72, 128);
@@ -65,7 +65,7 @@ const Render = (() => {
       let x = W / 2 - c.measureText(full).width / 2;
       for (const w of ln) {
         const said = now >= w.end, is = now >= w.start && now < w.end;
-        c.fillStyle = is ? "#c4582f" : said ? "#211f1a" : "rgba(33,31,26,.30)";
+        c.fillStyle = is ? "#c4582f" : said ? "#1b1b18" : "rgba(27,27,24,.30)";
         const t = w.word + " ";
         c.fillText(t, x + c.measureText(t).width / 2, y);
         x += c.measureText(t).width;
@@ -81,12 +81,12 @@ const Render = (() => {
       const idx = Math.floor((t / dur) * peaks.length);
       const v = Math.pow(peaks[Math.max(0, Math.min(peaks.length - 1, idx))] ?? 0, 2.2);
       const h = 4 + v * Math.pow(Math.cos((d * Math.PI) / 2), 1.4) * 120;
-      c.fillStyle = d < 0.1 ? "#c4582f" : `rgba(33,31,26,${(0.10 + 0.34 * (1 - d)).toFixed(3)})`;
+      c.fillStyle = d < 0.1 ? "#c4582f" : `rgba(27,27,24,${(0.10 + 0.34 * (1 - d)).toFixed(3)})`;
       rr(c, 72 + i * bw, H - 210 - h, bw - 3, h, 3);
     }
 
     // progress
-    c.fillStyle = "rgba(44,42,38,.14)"; rr(c, 72, H - 150, W - 144, 8, 4);
+    c.fillStyle = "rgba(27,27,24,.14)"; rr(c, 72, H - 150, W - 144, 8, 4);
     c.fillStyle = "#c4582f"; rr(c, 72, H - 150, (W - 144) * progress, 8, 4);
   }
 
